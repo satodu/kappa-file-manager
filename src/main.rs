@@ -3,6 +3,7 @@ mod ops;
 
 use std::env;
 use std::path::PathBuf;
+use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -13,11 +14,18 @@ use core::{
     places::Places,
     search::{SearchEngine, SearchFilter, SearchScope},
 };
-use ops::file_ops::FileOperations;
+use ops::file_ops::{self, FileOperations};
 
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
+
+    // Um gerenciador de arquivos como root transforma qualquer corrida ou link malicioso em escalada de privilégio
+    if !ops::file_ops::root_allowed(unsafe { libc::geteuid() }, env::var_os("KAPPA_ALLOW_ROOT").is_some()) {
+        println!("{}", serde_json::json!({ "ok": false, "event": "error", "error": "O Kappa não deve rodar como root (use o seu usuário comum)" }));
+        eprintln!("Kappa recusa rodar como root. Defina KAPPA_ALLOW_ROOT=1 apenas se tiver certeza.");
+        std::process::exit(1);
+    }
 
     if args.len() > 1 {
         match args[1].as_str() {
@@ -139,9 +147,22 @@ async fn main() {
                 return;
             }
             "--open" => {
+                // --open <path> [--confirmed]: arquivos que podem executar código pedem confirmação antes
                 if let Some(target) = args.get(2) {
-                    if let Err(e) = FileOperations::open_default(target) {
-                        eprintln!("Erro ao abrir arquivo: {}", e);
+                    let confirmed = args.iter().skip(3).any(|a| a == "--confirmed");
+                    let result = FileOperations::require_abs_ok(target).and_then(|_| {
+                        if !confirmed {
+                            if let Some(reason) = file_ops::open_risk(Path::new(target)) {
+                                println!("{}", serde_json::json!({ "ok": false, "needs_confirm": true, "reason": reason }));
+                                return Ok(false);
+                            }
+                        }
+                        FileOperations::open_default(target).map(|_| true)
+                    });
+                    match result {
+                        Ok(true) => println!("{}", serde_json::json!({ "ok": true })),
+                        Ok(false) => {}
+                        Err(e) => println!("{}", serde_json::json!({ "ok": false, "error": format!("Erro ao abrir arquivo: {}", e) })),
                     }
                 }
                 return;
@@ -164,26 +185,37 @@ async fn main() {
                 }
                 return;
             }
-            "--copy" => {
-                if let (Some(src), Some(dst)) = (args.get(2), args.get(3)) {
-                    match FileOperations::copy_item(src, dst) {
-                        Ok(p) => println!("{}", serde_json::json!({ "ok": true, "path": p })),
-                        Err(e) => {
-                            eprintln!("Erro ao copiar item: {}", e);
-                            println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() }));
-                        }
+            "--compress" => {
+                // --compress <zip|tar.gz> <out_dir> <nome-base|-> <origem>...
+                if let (Some(fmt), Some(out_dir), Some(name)) = (args.get(2), args.get(3), args.get(4)) {
+                    let fail = |msg: String| {
+                        println!("{}", serde_json::json!({ "event": "error", "error": msg }));
+                        std::process::exit(1);
+                    };
+                    let Some(format) = ops::archive::ArchiveFormat::parse(fmt) else { fail("Formato não suportado".into()); return; };
+                    if !std::iter::once(out_dir).chain(args.iter().skip(5)).all(|a| file_ops::require_absolute(a).is_ok()) {
+                        fail("Caminho precisa ser absoluto".into());
+                    }
+                    let sources: Vec<std::path::PathBuf> = args.iter().skip(5).map(std::path::PathBuf::from).collect();
+                    let base = if name == "-" { None } else { Some(name.as_str()) };
+                    if let Err(e) = ops::archive::compress(format, &sources, Path::new(out_dir), base) {
+                        fail(e.to_string());
                     }
                 }
                 return;
             }
-            "--move" => {
-                if let (Some(src), Some(dst)) = (args.get(2), args.get(3)) {
-                    match FileOperations::move_item(src, dst) {
-                        Ok(p) => println!("{}", serde_json::json!({ "ok": true, "path": p })),
-                        Err(e) => {
-                            eprintln!("Erro ao mover item: {}", e);
-                            println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() }));
-                        }
+            "--extract" => {
+                // --extract <arquivo> <out_dir>
+                if let (Some(archive), Some(out_dir)) = (args.get(2), args.get(3)) {
+                    let fail = |msg: String| {
+                        println!("{}", serde_json::json!({ "event": "error", "error": msg }));
+                        std::process::exit(1);
+                    };
+                    if file_ops::require_absolute(archive).is_err() || file_ops::require_absolute(out_dir).is_err() {
+                        fail("Caminho precisa ser absoluto".into());
+                    }
+                    if let Err(e) = ops::archive::extract(Path::new(archive), Path::new(out_dir)) {
+                        fail(e.to_string());
                     }
                 }
                 return;
@@ -191,6 +223,11 @@ async fn main() {
             "--transfer" => {
                 // --transfer <copy|move> <dest_dir> <src>...
                 if let (Some(mode), Some(dst)) = (args.get(2), args.get(3)) {
+                    let all_abs = std::iter::once(dst).chain(args.iter().skip(4)).all(|a| file_ops::require_absolute(a).is_ok());
+                    if !all_abs {
+                        println!("{}", serde_json::json!({ "event": "error", "error": "Caminho precisa ser absoluto" }));
+                        std::process::exit(1);
+                    }
                     let sources: Vec<std::path::PathBuf> = args.iter().skip(4).map(std::path::PathBuf::from).collect();
                     let mode = if mode == "move" { ops::transfer::TransferMode::Move } else { ops::transfer::TransferMode::Copy };
                     if let Err(e) = ops::transfer::Transfer::run(mode, &sources, std::path::Path::new(dst)) {

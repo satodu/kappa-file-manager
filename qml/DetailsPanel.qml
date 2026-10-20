@@ -97,7 +97,9 @@ Rectangle {
             Image {
                 id: previewImg
                 anchors.fill: parent
-                source: (root.fileItem && root.fileItem.kind === "image" && !root.fileItem.path.toLowerCase().endsWith(".svg")) ? ("file://" + root.fileItem.path) : ""
+                source: KappaSafe.previewUrl(root.fileItem)
+                sourceSize: Qt.size(584, 380)
+                cache: false
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 visible: root.fileItem && root.fileItem.kind === "image" && status === Image.Ready

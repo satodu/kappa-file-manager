@@ -46,6 +46,8 @@ kappa-file-manager/
 │   ├── KdeDeviceView.qml        // Visualização dedicada de dispositivo pareado KDE Connect (kanji 繋)
 │   ├── Statusbar.qml            // Contagem, detalhes de seleção e indicador de wallpaper
 │   ├── ContextMenu.qml          // Menu flutuante com suporte especial a áudio (// RYOTUNES_)
+│   ├── ConfirmModal.qml         // Confirmação genérica (abrir arquivo que pode executar código)
+│   ├── KappaSafe.qml            // Singleton de segurança: URLs file:// codificadas, prévias limitadas, clipboard
 │   ├── TransferCard.qml         // Cartão de progresso de cópia/movimentação (barra segmentada, pausar, cancelar)
 │   ├── RenameModal.qml          // Modal de renomeação (F2 e nova pasta)
 │   ├── DeleteModal.qml          // Modal de confirmação de exclusão (lixeira / permanente)
@@ -148,6 +150,13 @@ kappa-file-manager/
    - **Transferência (`--transfer <copy|move> <destino> <origens...>`):** emite JSON por linha (`start`, `progress`, `done`, `error`) lido pelo `SplitParser` em `App.qml` e mostrado no `TransferCard`. `Esc` cancela (SIGTERM e remove o arquivo parcial); Pausar usa SIGSTOP/SIGCONT. Ao concluir, os itens colados ficam selecionados.
    - **Nova pasta** (`F7`/`Ctrl+Shift+N`): cria a pasta e abre o `RenameModal` já nela (`pendingRenamePath`).
    - Variáveis de ambiente de teste: `KAPPA_START=<dir>`, `KAPPA_VIEW=list|grid`.
+
+15. **Compactar e extrair (0.1.1-beta) e regras de segurança:**
+   - Menu de contexto: `Comprimir em .zip`, `Comprimir em .tar.gz` (usa a seleção toda) e `Extrair aqui` (para `.zip`, `.tar`, `.tar.gz`, `.tgz`). Backend: `--compress <zip|tar.gz> <pasta> <nome|-> <origens...>` e `--extract <arquivo> <pasta>`, com os mesmos eventos JSON e o mesmo `TransferCard` da cópia; `Esc` cancela e remove o parcial.
+   - **Nunca** relaxe as defesas de `src/ops/archive.rs`: pasta de destino nova (`create_dir`), caminhos relativos seguros, nada escrito através de links, `O_NOFOLLOW|O_EXCL`, bits especiais removidos, limites de bomba, arquivo gerado `0600` e publicado de forma atômica. Todo ajuste exige teste em `archive.rs`.
+   - Abrir arquivo: o backend (`--open`) devolve `needs_confirm` para executáveis, scripts e lançadores (por conteúdo); o QML mostra `ConfirmModal` e só então chama `--open <caminho> --confirmed`.
+   - Nomes novos passam por `validate_file_name`; caminhos da CLI por `require_absolute`; ids KDE e dispositivos de bloco por `validate_device_id` / `validate_block_device`; exclusão por `ensure_not_protected`. Imagens usam `KappaSafe.previewUrl` (extensões permitidas, até 32 MiB, `sourceSize`). Mapa completo em `SECURITY.md`.
+   - O backend recusa rodar como root (`root_allowed`); aberturas de origem usam `O_NOFOLLOW`, movimentações `RENAME_NOREPLACE`. Kappa não guarda histórico, não grava cache de miniaturas, não aceita drag-and-drop e só lida com caminhos simples (sem `trash://`/`recent://`). Se isso mudar, atualize `SECURITY.md`.
 
 ---
 

@@ -41,7 +41,7 @@ impl ModeBits for std::fs::Permissions {
     }
 }
 
-fn emit(value: serde_json::Value) {
+pub(crate) fn emit(value: serde_json::Value) {
     let mut out = std::io::stdout().lock();
     let _ = writeln!(out, "{}", value);
     let _ = out.flush();
@@ -140,7 +140,8 @@ impl Transfer {
     fn transfer_one(&mut self, src: &Path, target: &Path) -> std::io::Result<()> {
         if self.mode == TransferMode::Move {
             // Mesmo sistema de arquivos: renomear é instantâneo
-            if std::fs::rename(src, target).is_ok() {
+            // Sem sobrescrever: se alguém criou `target` entre a escolha do nome e agora, o rename falha e cai na cópia
+            if super::file_ops::rename_no_replace(src, target).is_ok() {
                 self.done += if target.is_dir() { tree_size(target) } else { target.metadata().map(|m| m.len()).unwrap_or(0) };
                 return Ok(());
             }
@@ -169,7 +170,10 @@ impl Transfer {
     }
 
     fn copy_dir(&mut self, src: &Path, dst: &Path) -> std::io::Result<()> {
-        std::fs::create_dir_all(dst)?;
+        // A pasta nasce privada (0700) e só recebe as permissões da origem depois de copiar o conteúdo:
+        // assim uma pasta 0700 nunca fica visível a outros durante nem depois da cópia
+        std::os::unix::fs::DirBuilderExt::mode(&mut std::fs::DirBuilder::new(), 0o700).create(dst)?;
+        let src_mode = std::fs::symlink_metadata(src)?.permissions().mode_bits() & 0o777;
         for entry in std::fs::read_dir(src)? {
             let entry = entry?;
             let ty = entry.file_type()?;
@@ -184,13 +188,20 @@ impl Transfer {
             }
             // pipes, sockets e dispositivos são ignorados: abrir um pipe travaria a cópia
         }
+        // Nunca copia setuid/setgid/sticky; o dono continua podendo entrar na pasta
+        std::fs::set_permissions(dst, std::os::unix::fs::PermissionsExt::from_mode(src_mode | 0o700))?;
+        if src_mode & 0o700 != 0o700 {
+            // permissões restritivas da origem (ex.: 0500) são aplicadas por último
+            std::fs::set_permissions(dst, std::os::unix::fs::PermissionsExt::from_mode(src_mode))?;
+        }
         Ok(())
     }
 
     fn copy_file(&mut self, src: &Path, dst: &Path) -> std::io::Result<()> {
-        let mut reader = std::fs::File::open(src)?;
+        // O_NOFOLLOW: se a origem virou um link simbólico depois da checagem, a abertura falha em vez de segui-lo
+        let mut reader = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW).open(src)?;
         // Cria já com as permissões da origem (sujeitas ao umask), sem janela de arquivo exposto
-        let mode = reader.metadata()?.permissions().mode_bits();
+        let mode = reader.metadata()?.permissions().mode_bits() & 0o777;
         let mut writer = std::fs::OpenOptions::new().write(true).create_new(true).mode(mode).open(dst)?;
         let mut buf = vec![0u8; CHUNK];
         loop {
@@ -265,5 +276,24 @@ mod tests {
         assert!(!dst.join("tree/pipe").exists());
         let _ = std::fs::remove_dir_all(&root);
     }
-}
 
+    #[test]
+    fn copied_folders_keep_private_modes_and_drop_special_bits() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = scratch("modes");
+        let dst = root.join("dst");
+        std::fs::create_dir_all(root.join("ssh")).unwrap();
+        std::fs::write(root.join("ssh/key"), "k").unwrap();
+        std::fs::write(root.join("ssh/pub"), "p").unwrap();
+        std::fs::set_permissions(root.join("ssh/key"), std::fs::Permissions::from_mode(0o600)).unwrap();
+        std::fs::set_permissions(root.join("ssh/pub"), std::fs::Permissions::from_mode(0o4755)).unwrap();
+        std::fs::set_permissions(root.join("ssh"), std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        Transfer::run(TransferMode::Copy, &[root.join("ssh")], &dst).unwrap();
+        let mode = |p: &str| std::fs::metadata(dst.join(p)).unwrap().permissions().mode() & 0o7777;
+        assert_eq!(mode("ssh"), 0o700, "pasta privada continua privada");
+        assert_eq!(mode("ssh/key"), 0o600);
+        assert_eq!(mode("ssh/pub") & 0o7000, 0, "setuid não é copiado");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}

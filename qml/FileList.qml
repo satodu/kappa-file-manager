@@ -626,7 +626,9 @@ Item {
                     // Preview de Imagem real se for kind === "image" (exceto .svg que causa erro de decodificação)
                     Image {
                         anchors.fill: parent
-                        source: (modelData.kind === "image" && !modelData.path.toLowerCase().endsWith(".svg")) ? ("file://" + modelData.path) : ""
+                        source: KappaSafe.previewUrl(modelData)
+                        sourceSize: Qt.size(304, 200)
+                        cache: false
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                         visible: modelData.kind === "image" && status === Image.Ready

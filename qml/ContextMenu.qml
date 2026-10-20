@@ -15,6 +15,11 @@ Item {
 
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property bool isAudio: root.targetItem && root.targetItem.kind === "audio"
+    readonly property bool isArchive: {
+        if (!targetItem || targetItem.is_dir || !targetItem.name) return false;
+        var n = targetItem.name.toLowerCase();
+        return n.endsWith(".zip") || n.endsWith(".tar") || n.endsWith(".tar.gz") || n.endsWith(".tgz");
+    }
     readonly property bool isFolderContext: root.targetItem === null
     readonly property real menuWidth: root.isAudio ? 268 : 252
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
@@ -31,6 +36,8 @@ Item {
     signal reloadTriggered()
     signal selectAllTriggered()
     signal renameTriggered(var item)
+    signal compressTriggered(var item, string format)
+    signal extractTriggered(var item)
     signal trashTriggered(var item)
     signal sendKdeTriggered(var item, string devId)
     signal propertiesTriggered(var item)
@@ -39,7 +46,7 @@ Item {
         root.targetItem = item;
         root.devicesList = devices || [];
         root.showSendSubmenu = false;
-        var estHeight = root.isAudio ? 360 : (root.isFolderContext ? 270 : 380);
+        var estHeight = root.isAudio ? 465 : (root.isFolderContext ? 270 : 485);
         var clampX = Math.min(posX, root.width - root.menuWidth - 16);
         var clampY = Math.min(posY, root.height - estHeight - 16);
         root.menuX = Math.max(16, clampX);
@@ -1004,6 +1011,57 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: { root.copyTriggered(root.targetItem); root.hide(); }
                 }
+            }
+
+            // Compactar / Extrair (zip e tar.gz)
+            component ArchiveRow: Rectangle {
+                id: arow
+                property string label: ""
+                property string glyph: "󰗄"
+                signal activated()
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                radius: root.effectiveRadius
+                color: amouse.containsMouse ? KappaTheme.tint10 : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 10
+                    Text { textFormat: Text.PlainText; text: arow.glyph; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
+                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: arow.label; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
+                }
+                MouseArea {
+                    id: amouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { arow.activated(); root.hide(); }
+                }
+            }
+
+            ArchiveRow {
+                visible: !root.isFolderContext && root.isArchive
+                glyph: "󰛫"
+                label: root.isPt ? "Extrair aqui" : "Extract here"
+                onActivated: root.extractTriggered(root.targetItem)
+            }
+            ArchiveRow {
+                visible: !root.isFolderContext
+                label: root.isPt ? "Comprimir em .zip" : "Compress to .zip"
+                onActivated: root.compressTriggered(root.targetItem, "zip")
+            }
+            ArchiveRow {
+                visible: !root.isFolderContext
+                label: root.isPt ? "Comprimir em .tar.gz" : "Compress to .tar.gz"
+                onActivated: root.compressTriggered(root.targetItem, "tar.gz")
+            }
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 9
+                visible: !root.isFolderContext
+                Rectangle { anchors.centerIn: parent; width: parent.width; height: 1; color: KappaTheme.line }
             }
 
             // 8. Renomear (Nó 651 / Nó 1413 - F2)

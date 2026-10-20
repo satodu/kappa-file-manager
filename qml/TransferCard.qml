@@ -23,6 +23,7 @@ Item {
     property real speed: 0
     property real seconds: 0
     property string errorText: ""
+    property int skipped: 0
 
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
@@ -56,6 +57,8 @@ Item {
         if (root.finished) return root.isPt ? "CONCLUÍDO_" : "DONE_";
         if (root.failed) return root.isPt ? "ERRO_" : "ERROR_";
         if (root.state === "paused") return root.isPt ? "PAUSADO_" : "PAUSED_";
+        if (root.mode === "compress") return root.isPt ? "COMPRIMINDO_" : "COMPRESSING_";
+        if (root.mode === "extract") return root.isPt ? "EXTRAINDO_" : "EXTRACTING_";
         return root.mode === "move" ? (root.isPt ? "MOVENDO_" : "MOVING_") : (root.isPt ? "COPIANDO_" : "COPYING_");
     }
 

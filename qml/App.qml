@@ -63,6 +63,7 @@ Rectangle {
     property real transferTotal: 0
     property real transferSpeed: 0
     property real transferSeconds: 0
+    property int transferSkipped: 0
     property bool transferCancelled: false
     readonly property real transferFraction: app.transferTotal > 0 ? Math.min(1, app.transferDone / app.transferTotal) : (app.transferState === "done" ? 1 : 0)
 
@@ -81,7 +82,7 @@ Rectangle {
     }
 
     // Atalhos de edição ficam desligados enquanto um campo de texto ou modal tem o foco
-    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showDeleteModal && !app.showAppearance
+    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showDeleteModal && !app.showAppearance && !app.showConfirmModal
 
     // Exibição de Arquivos Ocultos (Ctrl+H)
     property bool showHidden: false
@@ -352,35 +353,6 @@ Rectangle {
         ejectProc.running = true;
     }
 
-    // Processo para Copiar e Mover (Colar) arquivos
-    Process {
-        id: copyPasteProc
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    var data = JSON.parse(this.text);
-                    if (data && !data.ok && data.error) {
-                        app.errorMessage = data.error;
-                    }
-                } catch(e) {}
-            }
-        }
-        stderr: StdioCollector {
-            onStreamFinished: {
-                if (this.text && this.text.trim().length > 0) {
-                    console.error("Erro na cópia:", this.text);
-                }
-            }
-        }
-        onExited: function(code) {
-            if (app.isSplit && app.activePane === "right") {
-                app.loadRightFolder(app.rightPath);
-            } else {
-                app.loadFolder(app.currentPath);
-            }
-        }
-    }
-
     // Processo de criação de pasta: ao terminar, a nova pasta já abre para renomear
     Process {
         id: newFolderProc
@@ -563,7 +535,7 @@ Rectangle {
         if (targets.length === 0) return;
         app.clipboardPaths = targets.map(function(t) { return t.path; });
         app.clipboardAction = "copy";
-        Quickshell.clipboardText = app.clipboardPaths.join("\n");
+        Quickshell.clipboardText = app.clipboardPaths.map(function(p) { return KappaSafe.fileUrl(p); }).join("\n");
     }
 
     function cutItem(item) {
@@ -571,22 +543,13 @@ Rectangle {
         if (targets.length === 0) return;
         app.clipboardPaths = targets.map(function(t) { return t.path; });
         app.clipboardAction = "cut";
-        Quickshell.clipboardText = app.clipboardPaths.join("\n");
+        Quickshell.clipboardText = app.clipboardPaths.map(function(p) { return KappaSafe.fileUrl(p); }).join("\n");
     }
 
     function clipboardSources() {
         if (app.clipboardPaths.length > 0) return app.clipboardPaths;
-        var raw = (Quickshell.clipboardText || "").trim();
-        if (raw.length === 0) return [];
-        var out = [];
-        var lines = raw.split("\n");
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i].trim();
-            if (line.startsWith("file://")) line = line.substring(7);
-            try { line = decodeURIComponent(line); } catch (e) {}
-            if (line.charAt(0) === "/") out.push(line);
-        }
-        return out;
+        // Texto vindo de fora só vale como arquivos se for uma lista de URIs file:// (não aceita "/etc/shadow" solto)
+        return KappaSafe.pathsFromClipboard(Quickshell.clipboardText);
     }
 
     function pasteItem() {
@@ -645,6 +608,41 @@ Rectangle {
         transferProc.running = true;
     }
 
+    // Compactar (zip/tar.gz) e extrair: mesmo cartão de progresso e mesmo cancelamento da cópia
+    function startArchiveOp(mode, args, name, items, destDir) {
+        if (app.transferState === "running" || app.transferState === "paused") return;
+        transferHideTimer.stop();
+        app.transferMode = mode;
+        app.transferDestDir = destDir;
+        app.transferName = name;
+        app.transferIndex = 0;
+        app.transferItems = items;
+        app.transferDone = 0;
+        app.transferTotal = 0;
+        app.transferSpeed = 0;
+        app.transferSkipped = 0;
+        app.transferDest = "";
+        app.transferCancelled = false;
+        app.transferState = "running";
+        transferProc.command = [app.backendBin].concat(args);
+        transferProc.running = true;
+    }
+
+    function compressItems(item, format) {
+        var targets = app.targetsFor(item);
+        if (targets.length === 0) return;
+        var destDir = (app.isSplit && app.activePane === "right") ? app.rightPath : app.currentPath;
+        var paths = targets.map(function(t) { return t.path; });
+        var base = targets.length > 1 ? (app.isSplit && app.activePane === "right" ? app.rightFolderName : app.currentFolderName) : "-";
+        app.startArchiveOp("compress", ["--compress", format, destDir, base].concat(paths), targets[0].name, targets.length, destDir);
+    }
+
+    function extractItem(item) {
+        if (!item || !item.path) return;
+        var destDir = (app.isSplit && app.activePane === "right") ? app.rightPath : app.currentPath;
+        app.startArchiveOp("extract", ["--extract", item.path, destDir], item.name, 1, destDir);
+    }
+
     function onTransferLine(line) {
         var ev;
         try { ev = JSON.parse(line); } catch (e) { return; }
@@ -664,6 +662,7 @@ Rectangle {
             app.transferDone = ev.bytes || app.transferDone;
             app.transferSeconds = ev.seconds || 0;
             app.transferDest = "";
+            app.transferSkipped = ev.skipped || 0;
             app.pendingSelectPaths = ev.paths || [];
             if (app.transferMode === "move") {
                 app.clipboardPaths = [];
@@ -967,7 +966,7 @@ Rectangle {
     }
 
     function handleKeyPress(event) {
-        if (app.showDeleteModal || app.showAppearance) return;
+        if (app.showDeleteModal || app.showAppearance || app.showConfirmModal) return;
 
         // Esc fecha menus flutuantes abertos
         if (event.key === Qt.Key_Escape && (sortMenu.visible || contextMenu.visible)) {
@@ -1222,6 +1221,55 @@ Rectangle {
         }
     }
 
+    // Abrir arquivo: o backend avisa quando ele pode executar código (script, programa, lançador)
+    property string pendingOpenPath: ""
+    property bool showConfirmModal: false
+
+    Process {
+        id: openProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var data = JSON.parse(this.text);
+                    if (data.needs_confirm) {
+                        var reasons = {
+                            launcher: app.isPt ? "um lançador de aplicativo (.desktop)" : "an application launcher (.desktop)",
+                            script: app.isPt ? "um script" : "a script",
+                            program: app.isPt ? "um programa executável" : "an executable program"
+                        };
+                        confirmModal.kicker = app.isPt ? "ARQUIVO EXECUTÁVEL_" : "EXECUTABLE FILE_";
+                        confirmModal.title = app.isPt ? "Abrir este arquivo?" : "Open this file?";
+                        confirmModal.message = (app.isPt ? "Este arquivo parece ser " : "This file looks like ") + (reasons[data.reason] || reasons.program)
+                            + (app.isPt ? ". Abri-lo pode executar código com as suas permissões. Só continue se você confia em quem o enviou." : ". Opening it may run code with your permissions. Only continue if you trust its source.");
+                        confirmModal.detail = app.pendingOpenPath;
+                        confirmModal.confirmLabel = app.isPt ? "Abrir mesmo assim" : "Open anyway";
+                        app.showConfirmModal = true;
+                        confirmModal.open();
+                    } else if (data.ok === false && data.error) {
+                        app.errorMessage = data.error;
+                    }
+                } catch (e) {}
+            }
+        }
+    }
+
+    function confirmOpen() {
+        var path = app.pendingOpenPath;
+        confirmModal.close();
+        app.showConfirmModal = false;
+        app.forceActiveFocus();
+        if (path === "") return;
+        openProc.command = [app.backendBin, "--open", path, "--confirmed"];
+        openProc.running = true;
+    }
+
+    function cancelOpen() {
+        confirmModal.close();
+        app.showConfirmModal = false;
+        app.pendingOpenPath = "";
+        app.forceActiveFocus();
+    }
+
     function openItem(item) {
         if (item.is_dir) {
             if (app.isSplit && app.activePane === "right") {
@@ -1230,8 +1278,9 @@ Rectangle {
                 loadFolder(item.path);
             }
         } else {
-            actionProc.command = [app.backendBin, "--open", item.path];
-            actionProc.running = true;
+            app.pendingOpenPath = item.path;
+            openProc.command = [app.backendBin, "--open", item.path];
+            openProc.running = true;
         }
     }
 
@@ -2064,6 +2113,12 @@ Rectangle {
         onRenameTriggered: function(item) {
             app.startRename(item);
         }
+        onCompressTriggered: function(item, format) {
+            app.compressItems(item, format);
+        }
+        onExtractTriggered: function(item) {
+            app.extractItem(item);
+        }
         onSendKdeTriggered: function(item, devId) {
             if (item && item.path) {
                 actionProc.command = [app.backendBin, "--kde-share", devId, item.path];
@@ -2096,6 +2151,7 @@ Rectangle {
         total: app.transferTotal
         speed: app.transferSpeed
         seconds: app.transferSeconds
+        skipped: app.transferSkipped
         errorText: app.errorMessage
         onCancelRequested: app.cancelTransfer()
         onPauseToggled: app.togglePauseTransfer()
@@ -2115,6 +2171,15 @@ Rectangle {
             app.showAppearance = false;
             app.forceActiveFocus();
         }
+    }
+
+    // Confirmação para abrir arquivos que podem executar código
+    ConfirmModal {
+        id: confirmModal
+        z: 125
+        anchors.fill: parent
+        onConfirmed: app.confirmOpen()
+        onCancelled: app.cancelOpen()
     }
 
     // Modal de confirmação de exclusão (Frames "Confirmar exclusão")

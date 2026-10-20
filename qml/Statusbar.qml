@@ -46,7 +46,10 @@ Rectangle {
         Text {
             textFormat: Text.PlainText
             text: root.transferring
-                  ? ((root.transferMode === "move" ? (root.isPt ? "Movendo · " : "Moving · ") : (root.isPt ? "Copiando · " : "Copying · ")) + Math.round(root.transferFraction * 100) + "%")
+                  ? ((root.transferMode === "move" ? (root.isPt ? "Movendo · " : "Moving · ")
+                     : root.transferMode === "compress" ? (root.isPt ? "Comprimindo · " : "Compressing · ")
+                     : root.transferMode === "extract" ? (root.isPt ? "Extraindo · " : "Extracting · ")
+                     : (root.isPt ? "Copiando · " : "Copying · ")) + Math.round(root.transferFraction * 100) + "%")
                   : root.totalItems + (root.isPt ? " itens" : " items")
             font.family: Tokens.ui
             font.pixelSize: 12

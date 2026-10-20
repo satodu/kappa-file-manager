@@ -6,7 +6,7 @@
 
 A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
 
-> Version **0.1.0-beta.2**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
+> Version **0.1.1-beta**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
 
 Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's best ideas (transparent device browsing, KIO-Fuse, KDE Connect integration, XDG places, a clean separation of model and view) and rebuilds them from scratch on a fast **Rust 2024** core, wearing the Ryoku design system.
 
@@ -36,6 +36,8 @@ Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's b
 - **Inline search:** live filtering with a 150 ms debounce, category chips with live counts and a scope switch (*This folder* or *Everything*).
 - **Multi-selection:** `Ctrl+click` toggles, `Shift+click` and `Shift+arrows` select ranges, `Ctrl+A` selects everything. Copy, cut, paste and delete act on every selected item.
 - **Transfers with progress:** copy and move show a progress card with speed and time remaining, can be paused, and can be cancelled with `Esc`, including for multi-gigabyte files.
+- **Compress and extract:** the context menu compresses the selection to `.zip` or `.tar.gz` and extracts `.zip`, `.tar`, `.tar.gz` and `.tgz` into a new folder, with the same progress card. Extraction is hardened against zip-slip, hostile links and decompression bombs (see [SECURITY.md](SECURITY.md)).
+- **Safe opening:** opening a script, program or `.desktop` launcher asks for confirmation first, judged by the file content and not only its name.
 - **Safe deletion:** `Del` opens a confirmation and moves items to the trash; `Shift+Del` deletes permanently after an explicit confirmation.
 - **Usable path bar:** click an empty area or press `Ctrl+L` to type a path, with suggestions, `Tab` completion and a clear message for paths that do not exist.
 - **Sorting and grouping:** sort by name, type, date or size (ascending or descending) and group by type with live section counts.
@@ -113,6 +115,7 @@ The interface finds the backend through `KAPPA_BACKEND` and falls back to `targe
 ### Known limitations (beta)
 
 - The battery, network and storage figures on the KDE Connect device screen are placeholder values taken from the design; actions such as ping and ring call the real `kdeconnect-cli`.
+- Archive support covers `.zip`, `.tar`, `.tar.gz` and `.tgz`; password-protected zips and other formats (`.7z`, `.rar`, `.tar.xz`) are not supported yet.
 - "Open terminal here" uses `$TERMINAL` or the first terminal it finds (`ghostty`, `kitty`, `alacritty`, `foot`, `konsole`, `xterm`).
 
 ---
