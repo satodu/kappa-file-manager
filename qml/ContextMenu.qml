@@ -46,7 +46,7 @@ Item {
         root.targetItem = item;
         root.devicesList = devices || [];
         root.showSendSubmenu = false;
-        var estHeight = root.isAudio ? 465 : (root.isFolderContext ? 270 : 485);
+        var estHeight = root.isAudio ? 500 : (root.isFolderContext ? 305 : 520);
         var clampX = Math.min(posX, root.width - root.menuWidth - 16);
         var clampY = Math.min(posY, root.height - estHeight - 16);
         root.menuX = Math.max(16, clampX);
@@ -1018,6 +1018,7 @@ Item {
                 id: arow
                 property string label: ""
                 property string glyph: "󰗄"
+                property string hint: ""
                 signal activated()
                 Layout.fillWidth: true
                 Layout.preferredHeight: 32
@@ -1031,6 +1032,7 @@ Item {
                     spacing: 10
                     Text { textFormat: Text.PlainText; text: arow.glyph; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
                     Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: arow.label; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
+                    Text { textFormat: Text.PlainText; visible: arow.hint !== ""; text: arow.hint; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint }
                 }
                 MouseArea {
                     id: amouse
@@ -1041,6 +1043,12 @@ Item {
                 }
             }
 
+            ArchiveRow {
+                glyph: "󰆏"
+                label: root.isPt ? "Copiar localização" : "Copy location"
+                hint: "Ctrl+Shift+C"
+                onActivated: root.copyPathTriggered(root.targetItem)
+            }
             ArchiveRow {
                 visible: !root.isFolderContext && root.isArchive
                 glyph: "󰛫"

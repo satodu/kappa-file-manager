@@ -39,7 +39,7 @@ Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's b
 - **Compress and extract:** the context menu compresses the selection to `.zip` or `.tar.gz` and extracts `.zip`, `.tar`, `.tar.gz` and `.tgz` into a new folder, with the same progress card. Extraction is hardened against zip-slip, hostile links and decompression bombs (see [SECURITY.md](SECURITY.md)).
 - **Safe opening:** opening a script, program or `.desktop` launcher asks for confirmation first, judged by the file content and not only its name.
 - **Safe deletion:** `Del` opens a confirmation and moves items to the trash; `Shift+Del` deletes permanently after an explicit confirmation.
-- **Usable path bar:** click an empty area or press `Ctrl+L` to type a path, with suggestions, `Tab` completion and a clear message for paths that do not exist.
+- **Usable path bar:** click an empty area or press `Ctrl+L` to type a path, with suggestions, `Tab` completion and a clear message for paths that do not exist. In narrow windows the first levels fold into a `…` menu.
 - **Sorting and grouping:** sort by name, type, date or size (ascending or descending) and group by type with live section counts.
 - **Details panel:** a sliding drawer (`Ctrl+I`) with a large preview, MIME type, location and a color palette for images, plus a "set as wallpaper" action.
 - **Own appearance:** `Ctrl+,` lets Kappa follow the Ryoku theme or use its own palette (scheme, seed color and light/dark mode) without changing the rest of the desktop.
@@ -131,6 +131,7 @@ The interface finds the backend through `KAPPA_BACKEND` and falls back to `targe
 | `Esc` | Clear search, close menus and dialogs, cancel a transfer |
 | `Enter` | Open the selected folder or file with the default application |
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste |
+| `Ctrl+Shift+C` | Copy the location (full path) of the selection, or of the current folder |
 | `Ctrl+A` | Select everything |
 | `Del` / `Shift+Del` | Move to trash (with confirmation) / delete permanently |
 | `F2` | Rename |

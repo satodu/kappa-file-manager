@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import Quickshell.Io
 import Ryoku.Ui.Singletons
 
@@ -38,12 +39,55 @@ Rectangle {
     signal toggleGroupRequested()
     signal closeSplitRequested()
 
+    // Níveis do caminho atual (cada um clicável); os que não cabem na largura viram o menu "…"
+    readonly property var crumbs: {
+        var p = root.currentPath;
+        if (!p || p === "/") return [{ label: "/", path: "/" }];
+        var parts = p.split("/").filter(function(s) { return s.length > 0; });
+        var res = [{ label: "Home", path: "/home/" + (parts[1] || "panda") }];
+        var accum = "";
+        for (var i = 0; i < parts.length; i++) {
+            accum += "/" + parts[i];
+            if (i === 1 && parts[0] === "home") continue; // já coberto por "Home"
+            res.push({ label: parts[i], path: accum });
+        }
+        return res;
+    }
+    property int firstCrumb: 0
+
+    function relayoutCrumbs() {
+        var n = crumbRepeater.count;
+        if (n === 0 || pathBar.width <= 0) { root.firstCrumb = 0; return; }
+        var all = 0;
+        for (var k = 0; k < n; k++) {
+            var it0 = crumbRepeater.itemAt(k);
+            if (it0) all += it0.crumbWidth + 6;
+        }
+        if (all <= pathBar.width) { root.firstCrumb = 0; return; }
+        // Não cabe: reserva o botão "…" e mostra o máximo de níveis finais; o último nível sempre aparece
+        var avail = pathBar.width - 34;
+        var total = 0;
+        var first = n - 1;
+        for (var i = n - 1; i >= 0; i--) {
+            var it = crumbRepeater.itemAt(i);
+            if (!it) continue;
+            var w = it.crumbWidth + 6;
+            if (i < n - 1 && total + w > avail) break;
+            total += w;
+            first = i;
+        }
+        root.firstCrumb = first;
+    }
+
+    Timer { id: relayoutTimer; interval: 0; onTriggered: root.relayoutCrumbs() }
+
     property bool isEditingPath: false
     property var suggestions: []
     property int suggestIndex: -1
     property string pathError: ""
     property string nearestParent: ""
     z: 5
+    Component.onCompleted: relayoutTimer.restart()
 
     readonly property string backendBin: (typeof app !== "undefined" && app) ? app.backendBin : ""
 
@@ -187,6 +231,56 @@ Rectangle {
             Layout.minimumWidth: 120
             height: 32
             clip: !root.isEditingPath
+            onWidthChanged: relayoutTimer.restart()
+
+            // Níveis ocultos: clicar navega até ele
+            Popup {
+                id: hiddenPopup
+                parent: pathBar
+                y: pathBar.height + 4
+                padding: 4
+                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                background: Rectangle {
+                    radius: root.effectiveRadius
+                    color: KappaTheme.paperLift
+                    border.width: 1
+                    border.color: KappaTheme.lineStrong
+                }
+                contentItem: Column {
+                    Repeater {
+                        model: root.crumbs.slice(0, root.firstCrumb)
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: Math.max(180, hiddenLabel.implicitWidth + 28)
+                            height: 30
+                            radius: Math.max(0, root.effectiveRadius - 2)
+                            color: hiddenItemMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+                            Text {
+                                id: hiddenLabel
+                                textFormat: Text.PlainText
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
+                                text: modelData.label
+                                font.family: Tokens.ui
+                                font.pixelSize: 13
+                                color: KappaTheme.ink
+                            }
+                            MouseArea {
+                                id: hiddenItemMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    hiddenPopup.close();
+                                    root.navigateRequested(modelData.path);
+                                    if (typeof app !== "undefined" && app) app.forceActiveFocus();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Clicar em qualquer ponto livre da barra entra no modo de edição
             MouseArea {
@@ -200,42 +294,53 @@ Rectangle {
             RowLayout {
                 id: crumbRow
                 height: parent.height
-                x: Math.min(0, parent.width - implicitWidth)
                 visible: !root.isEditingPath
                 spacing: 6
 
+                // "…" abre a lista dos níveis que não couberam
+                Rectangle {
+                    visible: root.firstCrumb > 0
+                    Layout.preferredWidth: 28
+                    Layout.preferredHeight: 24
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: Math.min(root.effectiveRadius, 6)
+                    color: hiddenMouse.containsMouse || hiddenPopup.visible ? KappaTheme.tint10 : "transparent"
+                    border.width: 1
+                    border.color: KappaTheme.line
+                    Text {
+                        textFormat: Text.PlainText
+                        anchors.centerIn: parent
+                        text: "…"
+                        font.family: Tokens.ui
+                        font.pixelSize: 14
+                        color: KappaTheme.inkDim
+                    }
+                    MouseArea {
+                        id: hiddenMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: hiddenPopup.visible ? hiddenPopup.close() : hiddenPopup.open()
+                    }
+                }
+
                 Repeater {
                     id: crumbRepeater
-                    model: {
-                        var p = root.currentPath;
-                        if (!p || p === "/") return [{ label: "/", path: "/" }];
-                        var parts = p.split("/").filter(function(s) { return s.length > 0; });
-                        var res = [];
-                        var accum = "";
-                        var start = 0;
-                        if (parts[0] === "home" && parts.length >= 2) {
-                            // /home/<usuário> vira o primeiro nível "Home"
-                            accum = "/home/" + parts[1];
-                            res.push({ label: "Home", path: accum });
-                            start = 2;
-                        } else {
-                            res.push({ label: "/", path: "/" });
-                        }
-                        for (var i = start; i < parts.length; i++) {
-                            accum += "/" + parts[i];
-                            res.push({ label: parts[i], path: accum });
-                        }
-                        return res;
-                    }
+                    model: root.crumbs
 
                     delegate: RowLayout {
                         required property var modelData
                         required property int index
                         readonly property bool isLast: index === crumbRepeater.count - 1
+                        readonly property real crumbWidth: crumbLabel.implicitWidth + crumbSep.implicitWidth + spacing
+                        visible: index >= root.firstCrumb
+                        onCrumbWidthChanged: relayoutTimer.restart()
                         spacing: 6
 
                         Text {
+                            id: crumbLabel
                             textFormat: Text.PlainText
+                            elide: Text.ElideRight
                             text: modelData.label
                             font.family: Tokens.ui
                             font.pixelSize: 13
@@ -256,6 +361,7 @@ Rectangle {
                         }
 
                         Text {
+                            id: crumbSep
                             textFormat: Text.PlainText
                             visible: modelData.label !== "/"
                             text: "/"
@@ -264,6 +370,7 @@ Rectangle {
                             color: KappaTheme.inkFaint
                         }
                     }
+                    onCountChanged: relayoutTimer.restart()
                 }
             }
 

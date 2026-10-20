@@ -70,6 +70,28 @@ Rectangle {
     readonly property var activeSelectedItem: (app.isSplit && app.activePane === "right") ? app.rightSelectedItem : app.selectedItem
     readonly property int activeSelectedCount: app.activePaths().length
 
+    // Enquanto se edita o caminho, Ctrl+C/V/A valem para o TEXTO do campo, não para os arquivos
+    readonly property bool anyPathEditing: (typeof toolbar !== "undefined" && toolbar && toolbar.isEditingPath)
+        || (typeof paneAToolbar !== "undefined" && paneAToolbar && paneAToolbar.isEditingPath)
+        || (typeof paneBToolbar !== "undefined" && paneBToolbar && paneBToolbar.isEditingPath)
+
+    // Aviso curto na barra de status ("Localização copiada")
+    property string statusNotice: ""
+    Timer { id: noticeTimer; interval: 2200; onTriggered: app.statusNotice = "" }
+
+    // Copia a localização (caminho) dos itens selecionados; sem seleção, a da pasta atual
+    function copyPath(item) {
+        var targets = app.targetsFor(item);
+        var paths = targets.length > 0
+            ? targets.map(function(t) { return t.path; })
+            : [(app.isSplit && app.activePane === "right") ? app.rightPath : app.currentPath];
+        Quickshell.clipboardText = paths.join("\n");
+        app.statusNotice = paths.length > 1
+            ? (app.isPt ? paths.length + " localizações copiadas" : paths.length + " locations copied")
+            : (app.isPt ? "Localização copiada" : "Location copied");
+        noticeTimer.restart();
+    }
+
     // Modal de confirmação de exclusão (Delete / Shift+Delete)
     property bool showDeleteModal: false
 
@@ -82,7 +104,7 @@ Rectangle {
     }
 
     // Atalhos de edição ficam desligados enquanto um campo de texto ou modal tem o foco
-    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showDeleteModal && !app.showAppearance && !app.showConfirmModal
+    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showDeleteModal && !app.showAppearance && !app.showConfirmModal && !app.anyPathEditing
 
     // Exibição de Arquivos Ocultos (Ctrl+H)
     property bool showHidden: false
@@ -1008,6 +1030,12 @@ Rectangle {
             // Ctrl+Shift+N: Nova pasta
             if (isShift && event.key === Qt.Key_N) {
                 app.createNewFolder();
+                event.accepted = true;
+                return;
+            }
+            // Ctrl+Shift+C: copiar a localização (caminho) em texto
+            if (isShift && event.key === Qt.Key_C) {
+                app.copyPath(null);
                 event.accepted = true;
                 return;
             }
@@ -2038,6 +2066,7 @@ Rectangle {
             transferState: app.transferState
             transferFraction: app.transferFraction
             transferMode: app.transferMode
+            notice: app.statusNotice
             onThemeClicked: app.openAppearance()
         }
     }
@@ -2106,8 +2135,7 @@ Rectangle {
             app.selectAll();
         }
         onCopyPathTriggered: function(item) {
-            var p = (item && item.path) ? item.path : ((app.isSplit && app.activePane === "right") ? app.rightPath : app.currentPath);
-            Quickshell.clipboardText = p;
+            app.copyPath(item);
         }
         onTrashTriggered: function(item) {
             app.requestDelete(item, false);

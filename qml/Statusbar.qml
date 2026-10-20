@@ -10,6 +10,7 @@ Rectangle {
     property int totalItems: 0
     property var selectedItem: null
     property int selectedCount: 0
+    property string notice: ""
     property string transferState: "idle"
     property real transferFraction: 0
     property string transferMode: "copy"
@@ -45,7 +46,7 @@ Rectangle {
         // Contador de itens (ou progresso da transferência)
         Text {
             textFormat: Text.PlainText
-            text: root.transferring
+            text: root.notice !== "" ? root.notice : root.transferring
                   ? ((root.transferMode === "move" ? (root.isPt ? "Movendo · " : "Moving · ")
                      : root.transferMode === "compress" ? (root.isPt ? "Comprimindo · " : "Compressing · ")
                      : root.transferMode === "extract" ? (root.isPt ? "Extraindo · " : "Extracting · ")
@@ -53,7 +54,7 @@ Rectangle {
                   : root.totalItems + (root.isPt ? " itens" : " items")
             font.family: Tokens.ui
             font.pixelSize: 12
-            color: root.transferring ? KappaTheme.sun : KappaTheme.inkDim
+            color: (root.transferring || root.notice !== "") ? KappaTheme.sun : KappaTheme.inkDim
         }
 
         // Detalhe do item selecionado (estilo: "1 selecionado · wallpaper.png · 4,2 MB")
