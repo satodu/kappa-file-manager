@@ -15,7 +15,7 @@ optdepends=('kdeconnect: phone pairing, ping, ring and sharing'
             'ghostty: default terminal for "Open terminal here" (any terminal in $TERMINAL also works)')
 _tag="v${pkgver//_/-}"
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$_tag.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('ff124a3f4f2d92f70b3fa34ad6aeede0d5e89617c5c403df581905a112b98c2e')
 
 prepare() {
   cd "$pkgname-${pkgver//_/-}"
