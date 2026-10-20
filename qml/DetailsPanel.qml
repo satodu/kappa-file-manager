@@ -1,0 +1,382 @@
+import QtQuick
+import QtQuick.Layouts
+import Ryoku.Ui.Singletons
+
+Rectangle {
+    id: root
+    width: 340
+    color: KappaTheme.paperLift
+    clip: true
+
+    property var fileItem: null
+    property bool isOpen: false
+    readonly property bool isPt: I18n.lang.startsWith("pt")
+    readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
+
+    signal openRequested(var item)
+    signal setWallpaperRequested(string path)
+    signal closeRequested()
+
+    // Borda vertical esquerda divisória (Nó 560)
+    Rectangle {
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 1
+        color: KappaTheme.line
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 24
+        spacing: 16
+
+        // 1. Cabeçalho da Seção PREVIEW (Nó 562: 292x20)
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 20
+            spacing: 8
+
+            Text {
+                text: "//"
+                font.family: Tokens.mono
+                font.pixelSize: 11
+                color: KappaTheme.sun
+            }
+
+            Text {
+                text: root.isPt ? "PREVIEW_" : "PREVIEW_"
+                font.family: Tokens.ui
+                font.pixelSize: 11
+                font.bold: true
+                color: KappaTheme.inkDim
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: KappaTheme.line
+
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    width: 1
+                    height: 5
+                    color: KappaTheme.lineStrong
+                }
+            }
+
+            // Botão fechar painel
+            Text {
+                text: "󰅖"
+                font.family: Tokens.mono
+                font.pixelSize: 12
+                color: KappaTheme.inkDim
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.closeRequested()
+                }
+            }
+        }
+
+        // 2. Card de Preview Grande (Nó 567: 292x190)
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 190
+            radius: root.effectiveRadius
+            color: KappaTheme.paper
+            border.width: 1
+            border.color: KappaTheme.line
+            clip: true
+
+            // Imagem real se for foto (exceto .svg que causa erro de decodificação)
+            Image {
+                id: previewImg
+                anchors.fill: parent
+                source: (root.fileItem && root.fileItem.kind === "image" && !root.fileItem.path.toLowerCase().endsWith(".svg")) ? ("file://" + root.fileItem.path) : ""
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                visible: root.fileItem && root.fileItem.kind === "image" && status === Image.Ready
+            }
+
+            // Fallback visual se for pasta ou outro arquivo
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: 8
+                visible: !previewImg.visible
+
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: {
+                        if (!root.fileItem) return "󰈔";
+                        if (root.fileItem.is_dir) return "󰉋";
+                        switch(root.fileItem.icon_name) {
+                            case "doc": return "󰈙";
+                            case "img": return "󰋩";
+                            case "music": return "󰎆";
+                            case "video": return "󰕧";
+                            case "code": return "󰅩";
+                            case "archive": return "󰛫";
+                            default: return "󰈔";
+                        }
+                    }
+                    font.family: Tokens.mono
+                    font.pixelSize: 56
+                    color: (root.fileItem && root.fileItem.is_dir) ? KappaTheme.sun : KappaTheme.inkDim
+                }
+            }
+
+            // Ticks técnicos de blueprint nos 4 cantos (Nó 570)
+            Item {
+                anchors.fill: parent
+                Rectangle { x: 4; y: 4; width: 6; height: 1; color: KappaTheme.sun }
+                Rectangle { x: 4; y: 4; width: 1; height: 6; color: KappaTheme.sun }
+                Rectangle { x: parent.width - 10; y: 4; width: 6; height: 1; color: KappaTheme.sun }
+                Rectangle { x: parent.width - 5; y: 4; width: 1; height: 6; color: KappaTheme.sun }
+                Rectangle { x: 4; y: parent.height - 5; width: 6; height: 1; color: KappaTheme.sun }
+                Rectangle { x: 4; y: parent.height - 10; width: 1; height: 6; color: KappaTheme.sun }
+                Rectangle { x: parent.width - 10; y: parent.height - 5; width: 6; height: 1; color: KappaTheme.sun }
+                Rectangle { x: parent.width - 5; y: parent.height - 10; width: 1; height: 6; color: KappaTheme.sun }
+            }
+
+            // Plaqueta de Dimensão / Tamanho no canto inferior direito (Nó 571)
+            Rectangle {
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 8
+                implicitWidth: dimText.implicitWidth + 12
+                implicitHeight: 20
+                color: Qt.rgba(0, 0, 0, 0.75)
+                border.width: 1
+                border.color: KappaTheme.line
+
+                Text {
+                    id: dimText
+                    anchors.centerIn: parent
+                    text: root.fileItem ? (root.fileItem.is_dir ? (root.isPt ? "Pasta" : "Folder") : root.fileItem.size_formatted) : ""
+                    font.family: Tokens.mono
+                    font.pixelSize: 10
+                    color: KappaTheme.paper
+                }
+            }
+        }
+
+        // 3. Título e Subtítulo (Nós 573 e 574)
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 2
+
+            Text {
+                Layout.fillWidth: true
+                text: root.fileItem ? root.fileItem.name : ""
+                font.family: Tokens.display
+                font.pixelSize: 18
+                font.bold: true
+                color: KappaTheme.ink
+                elide: Text.ElideRight
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: {
+                    if (!root.fileItem) return "";
+                    var k = root.fileItem.kind;
+                    var label = k;
+                    if (root.fileItem.is_dir) label = root.isPt ? "Diretório" : "Directory";
+                    else if (k === "image") label = root.isPt ? "Imagem" : "Image";
+                    else if (k === "document") label = root.isPt ? "Documento" : "Document";
+                    else if (k === "audio") label = root.isPt ? "Áudio" : "Audio";
+                    else if (k === "code") label = root.isPt ? "Código-fonte" : "Source Code";
+                    return label + (root.fileItem.is_dir ? "" : (" · " + root.fileItem.size_formatted));
+                }
+                font.family: Tokens.ui
+                font.pixelSize: 12
+                color: KappaTheme.inkDim
+                elide: Text.ElideRight
+            }
+        }
+
+        // 4. Seção DETALHES (Nó 575: 292x20)
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 20
+            spacing: 8
+
+            Text {
+                text: "//"
+                font.family: Tokens.mono
+                font.pixelSize: 11
+                color: KappaTheme.sun
+            }
+
+            Text {
+                text: root.isPt ? "DETALHES_" : "DETAILS_"
+                font.family: Tokens.ui
+                font.pixelSize: 11
+                font.bold: true
+                color: KappaTheme.inkDim
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: KappaTheme.line
+
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    width: 1
+                    height: 5
+                    color: KappaTheme.lineStrong
+                }
+            }
+        }
+
+        // Tabela de Metadados Chave-Valor (Nós 580 a 597)
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 4
+
+            // TIPO
+            RowLayout {
+                Layout.fillWidth: true
+                height: 22
+                Text { text: root.isPt ? "TIPO" : "TYPE"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { text: root.fileItem ? root.fileItem.mime_type : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideRight }
+            }
+
+            // MODIFICADO
+            RowLayout {
+                Layout.fillWidth: true
+                height: 22
+                Text { text: root.isPt ? "MODIFICADO" : "MODIFIED"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { text: root.fileItem ? root.fileItem.modified_formatted : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideRight }
+            }
+
+            // TAMANHO
+            RowLayout {
+                Layout.fillWidth: true
+                height: 22
+                Text { text: root.isPt ? "TAMANHO" : "SIZE"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { text: root.fileItem ? root.fileItem.size_formatted : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true }
+            }
+
+            // LOCAL
+            RowLayout {
+                Layout.fillWidth: true
+                height: 22
+                Text { text: root.isPt ? "LOCAL" : "LOCATION"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { text: root.fileItem ? root.fileItem.path : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideMiddle }
+            }
+        }
+
+        // 5. Seção PALETA (Nó 598: se for imagem)
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            visible: root.fileItem && root.fileItem.kind === "image"
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 20
+                spacing: 8
+
+                Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
+                Text { text: root.isPt ? "PALETA_" : "PALETTE_"; font.family: Tokens.ui; font.pixelSize: 11; font.bold: true; color: KappaTheme.inkDim }
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: KappaTheme.line
+                }
+            }
+
+            // Amostras de Cor Brutalistas (Nós 604 a 609: 6 amostras)
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Repeater {
+                    model: ["#141413", "#2a2927", "#444340", "#e2342a", "#8c8a85", "#dedad2"]
+                    delegate: Rectangle {
+                        required property string modelData
+                        Layout.fillWidth: true
+                        height: 26
+                        radius: root.effectiveRadius
+                        color: modelData
+                        border.width: 1
+                        border.color: KappaTheme.line
+                    }
+                }
+            }
+        }
+
+        Item { Layout.fillHeight: true }
+
+        // 6. Barra de Ações (Nó 611: 292x32)
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            // Botão Abrir
+            Rectangle {
+                implicitWidth: 70
+                implicitHeight: 32
+                radius: root.effectiveRadius
+                color: openBtnMouse.containsMouse ? KappaTheme.tint16 : KappaTheme.paper
+                border.width: 1
+                border.color: KappaTheme.lineStrong
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.isPt ? "Abrir" : "Open"
+                    font.family: Tokens.ui
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: KappaTheme.ink
+                }
+
+                MouseArea {
+                    id: openBtnMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (root.fileItem) root.openRequested(root.fileItem);
+                    }
+                }
+            }
+
+            // Botão Definir como Wallpaper (se for imagem)
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 32
+                radius: root.effectiveRadius
+                visible: root.fileItem && root.fileItem.kind === "image"
+                color: wallBtnMouse.containsMouse ? KappaTheme.sun : KappaTheme.paper
+                border.width: 1
+                border.color: KappaTheme.sun
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.isPt ? "Definir como wallpaper" : "Set as wallpaper"
+                    font.family: Tokens.ui
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: wallBtnMouse.containsMouse ? KappaTheme.paper : KappaTheme.sun
+                }
+
+                MouseArea {
+                    id: wallBtnMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (root.fileItem) root.setWallpaperRequested(root.fileItem.path);
+                    }
+                }
+            }
+        }
+    }
+}
