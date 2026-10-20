@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Kappa
+GenericName=File Manager
+Comment=Brutalist file manager for Ryoku OS
+Exec=kappa-file-manager
+Icon=kappa-file-manager
+Terminal=false
+Categories=System;FileTools;FileManager;Utility;
+Keywords=files;folders;explorer;manager;
+StartupWMClass=org.quickshell

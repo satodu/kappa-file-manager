@@ -10,4 +10,4 @@ cargo build
 export QT_PLUGIN_PATH="/usr/lib/qt6/plugins:${QT_PLUGIN_PATH}"
 
 echo "» Iniciando Kappa File Manager..."
-quickshell -p "$DIR/qml/shell.qml"
+KAPPA_BACKEND="$DIR/target/debug/kappa-file-manager" quickshell -p "$DIR/qml/shell.qml"

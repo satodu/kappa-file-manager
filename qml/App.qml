@@ -16,7 +16,8 @@ Rectangle {
         app.handleKeyPress(event);
     }
 
-    property string currentPath: Quickshell.env("KAPPA_START") || "/home/panda"
+    readonly property string homeDir: Quickshell.env("HOME") || "/"
+    property string currentPath: Quickshell.env("KAPPA_START") || app.homeDir
     property var currentEntries: []
     property var folderEntries: []
     property var rawEntries: []
@@ -32,7 +33,7 @@ Rectangle {
 
     // Split View (Divisão em dois painéis lado a lado - F3)
     property bool isSplit: false
-    property string rightPath: "/home/panda"
+    property string rightPath: app.homeDir
     property var rightEntries: []
     property var folderRightEntries: []
     property var rightSelectedItem: null
@@ -120,7 +121,7 @@ Rectangle {
 
     // Gerenciador de Abas (inicia com 1 aba, e a barra só surge com > 1 aba)
     property var tabs: [
-        { id: 0, title: "Home", path: Quickshell.env("KAPPA_START") || "/home/panda" }
+        { id: 0, title: "Home", path: Quickshell.env("KAPPA_START") || (Quickshell.env("HOME") || "/") }
     ]
     property int activeTabIndex: 0
 
@@ -161,7 +162,8 @@ Rectangle {
         return app.isPt ? "01 // ARQUIVOS" : "01 // FILES";
     }
 
-    readonly property string backendBin: "/home/panda/orca/projects/kappa-file-manager/target/debug/kappa-file-manager"
+    // Binário do backend: KAPPA_BACKEND (definido pelo launcher instalado) ou, em desenvolvimento, target/debug ao lado de qml/
+    readonly property string backendBin: Quickshell.env("KAPPA_BACKEND") || (Quickshell.shellDir + "/../target/debug/kappa-file-manager")
 
     // Processo para listar arquivos (Painel Principal)
     Process {
@@ -1261,7 +1263,8 @@ Rectangle {
                 break;
             }
         }
-        actionProc.command = ["ghostty", "--working-directory=" + dir];
+        // Abre o terminal preferido ($TERMINAL ou o primeiro disponível) já na pasta
+        actionProc.command = ["sh", "-c", 'cd "$1" || exit 1; for t in "$TERMINAL" ghostty kitty alacritty foot konsole xterm; do if [ -n "$t" ] && command -v "$t" >/dev/null 2>&1; then exec "$t"; fi; done', "sh", dir];
         actionProc.running = true;
     }
 

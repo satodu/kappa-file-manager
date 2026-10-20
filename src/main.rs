@@ -2,7 +2,7 @@ mod core;
 mod ops;
 
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -302,24 +302,30 @@ async fn main() {
     }
 
     // Por padrão (ou com --gui), lança a interface Quickshell QML
-    let _exe_dir = env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-        .unwrap_or_else(|| PathBuf::from("."));
+    // Localiza o shell.qml: KAPPA_QML_DIR, instalação do sistema ou a árvore de desenvolvimento (target/<perfil>/../..)
+    let exe = env::current_exe().ok();
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(dir) = env::var("KAPPA_QML_DIR") {
+        candidates.push(PathBuf::from(dir).join("shell.qml"));
+    }
+    candidates.push(PathBuf::from("/usr/share/kappa-file-manager/qml/shell.qml"));
+    if let Some(root) = exe.as_deref().and_then(|p| p.ancestors().nth(3)) {
+        candidates.push(root.join("qml/shell.qml"));
+    }
 
-    // Tenta encontrar o arquivo shell.qml do projeto
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let qml_shell = manifest_dir.join("qml/shell.qml");
-
-    if qml_shell.exists() {
-        println!("» Lançando Kappa File Manager UI via Quickshell: {}", qml_shell.display());
-        let mut child = Command::new("quickshell")
-            .arg("-p")
-            .arg(&qml_shell)
-            .spawn()
-            .expect("Falha ao executar o quickshell");
-        let _ = child.wait();
-    } else {
-        eprintln!("Arquivo QML não encontrado em {}", qml_shell.display());
+    match candidates.into_iter().find(|p| p.exists()) {
+        Some(qml_shell) => {
+            println!("» Lançando Kappa File Manager UI via Quickshell: {}", qml_shell.display());
+            let mut cmd = Command::new("quickshell");
+            cmd.arg("-p").arg(&qml_shell);
+            if env::var_os("KAPPA_BACKEND").is_none() {
+                if let Some(exe) = &exe {
+                    cmd.env("KAPPA_BACKEND", exe);
+                }
+            }
+            let mut child = cmd.spawn().expect("Falha ao executar o quickshell");
+            let _ = child.wait();
+        }
+        None => eprintln!("Arquivo shell.qml não encontrado (defina KAPPA_QML_DIR)"),
     }
 }

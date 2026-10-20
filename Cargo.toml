@@ -1,7 +1,11 @@
 [package]
 name = "kappa-file-manager"
-version = "0.1.0"
+version = "0.1.0-beta"
 edition = "2024"
+description = "Brutalist file manager for Ryoku OS: Rust core with a Quickshell (QML) interface"
+license = "0BSD"
+repository = "https://github.com/satodu/kappa-file-manager"
+readme = "README.md"
 
 [dependencies]
 chrono = "0.4.45"

@@ -2,7 +2,7 @@
 
 A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
 
-> Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
+> Version **0.1.0-beta**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
 
 Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's best ideas (transparent device browsing, KIO-Fuse, KDE Connect integration, XDG places, a clean separation of model and view) and rebuilds them from scratch on a fast **Rust 2024** core, wearing the Ryoku design system.
 
@@ -67,11 +67,27 @@ The interface talks to the backend through a small command-line interface that p
 
 ### Requirements
 
-- **Rust and Cargo** (edition 2024)
-- **Qt 6 and Quickshell** (included with Ryoku OS)
-- Optional: `kdeconnect-cli` and `kio-fuse` for phone integration, `matugen` for the Kappa-only theme
+- **Ryoku OS** (provides the `ryoku-desktop` package with the `Ryoku.Ui` QML module), **Quickshell** and **Qt 6**
+- **Rust and Cargo** (edition 2024) to build from source
+- Optional: `kdeconnect` and `kio-fuse` for phone integration, `matugen` for the Kappa-only theme, `swww` for "set as wallpaper"
 
-### Run
+### Install on Arch Linux (AUR)
+
+```bash
+yay -S kappa-file-manager
+```
+
+Or build the package straight from this repository:
+
+```bash
+git clone https://github.com/satodu/kappa-file-manager.git
+cd kappa-file-manager/packaging/aur
+makepkg -si
+```
+
+Then start **Kappa** from your launcher, or run `kappa-file-manager`.
+
+### Run from source
 
 ```bash
 git clone https://github.com/satodu/kappa-file-manager.git
@@ -86,12 +102,12 @@ cargo build
 quickshell -p qml/shell.qml
 ```
 
-For testing, `KAPPA_START=<folder>` sets the starting folder and `KAPPA_VIEW=list|grid` sets the initial view.
+The interface finds the backend through `KAPPA_BACKEND` and falls back to `target/debug/` next to the `qml/` folder. For testing, `KAPPA_START=<folder>` sets the starting folder and `KAPPA_VIEW=list|grid` sets the initial view.
 
-### Known limitations (alpha)
+### Known limitations (beta)
 
-- `qml/App.qml` currently points at the backend binary with an absolute path (`backendBin`), so it must be edited when the project lives somewhere else.
 - The battery, network and storage figures on the KDE Connect device screen are placeholder values taken from the design; actions such as ping and ring call the real `kdeconnect-cli`.
+- "Open terminal here" uses `$TERMINAL` or the first terminal it finds (`ghostty`, `kitty`, `alacritty`, `foot`, `konsole`, `xterm`).
 
 ---
 
@@ -123,6 +139,12 @@ For testing, `KAPPA_START=<folder>` sets the starting folder and `KAPPA_VIEW=lis
 - **Appearance:** Kappa follows the Ryoku theme by default. In **Fixed in Kappa** mode it generates its own Material palette with `matugen` (scheme, seed color, light or dark) and stores it in `~/.config/kappa/theme.json`.
 - **Sorting and grouping:** the **Sort** button opens a menu to sort by **Name**, **Type**, **Date** or **Size**, ascending or descending; column headers are clickable. **Group by type** creates sections (`FOLDERS_`, `IMAGES_`, `DOCUMENTS_`, `AUDIO_`, `VIDEOS_`, `CODE_`, `OTHER_`) with live counts.
 - **Context menu:** open, open in a new tab, open a terminal here, cut, copy, paste, send to (KDE Connect devices, USB drives, zip, clipboard), rename, trash and properties, plus a dedicated section for audio tracks that plays them in Ryotunes.
+
+---
+
+## License
+
+Kappa is released under the [BSD Zero Clause License (0BSD)](LICENSE): you may use, copy, modify and distribute it for any purpose, with no attribution required.
 
 ---
 
