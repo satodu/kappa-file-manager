@@ -1,4 +1,8 @@
-# Kappa File Manager (河)
+<p align="center">
+  <img src="assets/logo.png" alt="Kappa logo" width="128" height="128">
+</p>
+
+<h1 align="center">Kappa File Manager (河)</h1>
 
 A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
 
@@ -74,6 +78,8 @@ The interface talks to the backend through a small command-line interface that p
 ### Install on Arch Linux (AUR)
 
 ```bash
+paru -S kappa-file-manager
+# or
 yay -S kappa-file-manager
 ```
 
