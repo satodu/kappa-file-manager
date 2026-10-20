@@ -93,6 +93,8 @@ pub struct FileEntry {
     pub path: PathBuf,
     pub is_dir: bool,
     pub is_symlink: bool,
+    /// Arquivo comum (não é pasta, pipe, socket nem dispositivo): só esses podem ter miniatura ou ser lidos
+    pub is_regular: bool,
     pub is_hidden: bool,
     pub size_bytes: u64,
     pub size_formatted: String,
@@ -154,6 +156,7 @@ impl FileEntry {
             path,
             is_dir,
             is_symlink,
+            is_regular: meta.is_file(),
             is_hidden,
             size_bytes,
             size_formatted,

@@ -11,6 +11,20 @@ Kappa is a file manager, so it handles untrusted names, links, paths and archive
 - Every path received by the backend must be absolute. Deleting refuses `/`, top-level folders (`/home`, `/etc`, ...) and `$HOME`.
 - File and folder names are always drawn as plain text, never as HTML.
 
+**Browsing runs nothing**
+- Opening or listing a folder never starts a helper program: no `git status`, no thumbnailers (ImageMagick, ffmpeg, Ghostscript), no metadata readers. Listing only reads names and sizes, so a hostile `.git/config` or a crafted media file cannot execute anything just by being in a folder. The few helpers Kappa does run (`lsblk`, `kdeconnect-cli`, `busctl`, `udisksctl`, `matugen`) use fixed arguments that never come from folder contents.
+
+**Data loss**
+- A move first tries an instant `rename`; across drives it copies, flushes every file to disk (`fsync`), checks the copied size against the source, and only then deletes the source. Any failure removes the partial copy and keeps the original.
+- Nothing is overwritten: copies and moves pick a new name (`name (1)`), renames use `RENAME_NOREPLACE`, files are created with `O_EXCL`. On case-insensitive drives (FAT/exFAT/NTFS) `README` and `readme` count as the same name, so the second one gets a new name or, in an archive, is skipped and reported.
+- Deleting a symbolic link removes only the link, never its target. Deleting, trashing or moving a folder that contains a mount point (a USB stick, a network share, a mounted phone) is refused, so it can never empty another disk.
+
+**Names**
+- Names such as `-rf`, `--help`, `$(cmd)`, `` `cmd` ``, `a; b`, `@file` or `<b>x</b>` are plain data: commands receive absolute paths in argument lists (never a shell string), and names are drawn as plain text. This is covered by tests that create, rename, copy and archive such names.
+
+**Resources**
+- A folder is listed in a separate process with a cap of 200,000 entries (the app says when it truncates), so huge folders cannot freeze or exhaust the window. Image previews load asynchronously, only for regular files (a FIFO or device named `x.png` is never opened), only from a short list of formats and up to 32 MiB. Pipes, sockets and devices are skipped by copy and compress, symbolic links are never followed (no link loops), and a stuck folder load is killed as soon as you navigate elsewhere.
+
 **Archives (`.zip`, `.tar`, `.tar.gz`, `.tgz`)**
 - Extraction always goes to a brand new folder; nothing existing is overwritten. On any error the partial folder is removed.
 - Entries with absolute paths, `..`, control characters or over-long names are skipped (zip-slip). Writes never go through a symbolic link and files are opened with `O_NOFOLLOW | O_EXCL`.
@@ -49,6 +63,6 @@ Kappa is a file manager, so it handles untrusted names, links, paths and archive
 - Kappa is only a D-Bus *client* (`busctl` calls to KDE Connect and KIO-Fuse). It exports no service, name or method, so there is nothing for another process to call. Ids placed in those calls are validated first.
 - Mounting and ejecting go through `udisksctl`, so authorisation stays with udisks and Polkit. Kappa never talks to Polkit itself, and the block device passed to it must be a plain `/dev/...` path.
 
-Known limits: Image decoding still happens inside the app process using Qt's image plugins; a malicious archive can still fill the allowed disk reserve before the limits stop it; a file's content can change between the check and the open; and a process running as *your own user* can still race Kappa (it has the same access to your files anyway).
+Known limits: a folder on a hung network mount can still block its own listing process until it answers (the window stays responsive); Image decoding still happens inside the app process using Qt's image plugins; a malicious archive can still fill the allowed disk reserve before the limits stop it; a file's content can change between the check and the open; and a process running as *your own user* can still race Kappa (it has the same access to your files anyway).
 
 To report a vulnerability, please open a private security advisory on GitHub (Security tab of the repository) instead of a public issue.

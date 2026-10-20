@@ -22,7 +22,8 @@ Singleton {
     }
 
     function isPreviewable(item) {
-        if (!item || item.is_dir || item.kind !== "image") return false;
+        // Só arquivos comuns: um pipe (FIFO) ou dispositivo com nome .png travaria o decodificador para sempre
+        if (!item || item.is_dir || item.is_regular !== true || item.kind !== "image") return false;
         if (previewExts.indexOf(extOf(item.name)) < 0) return false;
         return (item.size_bytes || 0) > 0 && item.size_bytes <= maxPreviewBytes;
     }

@@ -105,7 +105,11 @@ impl Transfer {
             let target = FileOperations::find_unique_target_path(dst_dir, file_name, is_real_dir);
             t.dest = target.clone();
             t.progress(true);
-            t.transfer_one(src, &target)?;
+            if let Err(e) = t.transfer_one(src, &target) {
+                // Nunca deixa uma cópia pela metade para trás (a origem continua intacta)
+                t.remove_partial(&target);
+                return Err(e);
+            }
             results.push(target);
         }
 
@@ -137,6 +141,15 @@ impl Transfer {
         }));
     }
 
+    /// Remove o destino criado por esta operação depois de uma falha
+    fn remove_partial(&self, target: &Path) {
+        match std::fs::symlink_metadata(target) {
+            Ok(m) if m.is_dir() => { let _ = std::fs::remove_dir_all(target); }
+            Ok(_) => { let _ = std::fs::remove_file(target); }
+            Err(_) => {}
+        }
+    }
+
     fn transfer_one(&mut self, src: &Path, target: &Path) -> std::io::Result<()> {
         if self.mode == TransferMode::Move {
             // Mesmo sistema de arquivos: renomear é instantâneo
@@ -148,6 +161,11 @@ impl Transfer {
         }
 
         let ty = std::fs::symlink_metadata(src)?.file_type();
+        // Mover entre discos copia e depois apaga a origem; se dentro dela houver outro disco montado,
+        // apagar a origem esvaziaria esse outro disco. Recusa antes de copiar qualquer coisa.
+        if self.mode == TransferMode::Move && ty.is_dir() && super::file_ops::contains_mount(src) {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "A pasta contém um ponto de montagem (disco ou compartilhamento); copie em vez de mover"));
+        }
         if ty.is_symlink() {
             // Links são recriados como links, nunca seguidos (evita copiar o que está fora da árvore)
             std::os::unix::fs::symlink(std::fs::read_link(src)?, target)?;
@@ -203,6 +221,8 @@ impl Transfer {
         // Cria já com as permissões da origem (sujeitas ao umask), sem janela de arquivo exposto
         let mode = reader.metadata()?.permissions().mode_bits() & 0o777;
         let mut writer = std::fs::OpenOptions::new().write(true).create_new(true).mode(mode).open(dst)?;
+        let expected = reader.metadata()?.len();
+        let mut copied: u64 = 0;
         let mut buf = vec![0u8; CHUNK];
         loop {
             let n = reader.read(&mut buf)?;
@@ -210,10 +230,16 @@ impl Transfer {
                 break;
             }
             writer.write_all(&buf[..n])?;
+            copied += n as u64;
             self.done += n as u64;
             self.progress(false);
         }
         writer.flush()?;
+        // Só considera o arquivo copiado depois de ele estar no disco; em "mover" isso vem antes de apagar a origem
+        writer.sync_all()?;
+        if copied != expected {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "O arquivo mudou durante a cópia; a origem foi mantida"));
+        }
         Ok(())
     }
 }
@@ -294,6 +320,50 @@ mod tests {
         assert_eq!(mode("ssh"), 0o700, "pasta privada continua privada");
         assert_eq!(mode("ssh/key"), 0o600);
         assert_eq!(mode("ssh/pub") & 0o7000, 0, "setuid não é copiado");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn failed_copy_leaves_no_partial_target_and_keeps_source() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = scratch("partial");
+        let dst = root.join("dst");
+        std::fs::create_dir_all(root.join("tree")).unwrap();
+        std::fs::write(root.join("tree/ok.txt"), "ok").unwrap();
+        std::fs::write(root.join("tree/locked.txt"), "secret").unwrap();
+        std::fs::set_permissions(root.join("tree/locked.txt"), std::fs::Permissions::from_mode(0o000)).unwrap();
+
+        // Ilegível: a cópia falha no meio. Rodando como root isso não falharia, então só valida quando falha.
+        let res = Transfer::run(TransferMode::Copy, &[root.join("tree")], &dst);
+        std::fs::set_permissions(root.join("tree/locked.txt"), std::fs::Permissions::from_mode(0o600)).unwrap();
+        if res.is_err() {
+            assert!(!dst.join("tree").exists(), "nenhuma cópia parcial pode sobrar");
+            assert!(root.join("tree/ok.txt").exists(), "a origem continua inteira");
+            assert!(root.join("tree/locked.txt").exists());
+        }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn move_refuses_folders_that_contain_mounts() {
+        // /proc é montagem: "mover" qualquer pasta que a contenha (a raiz) precisa ser recusado antes de tocar em nada
+        let dst = scratch("mountmove");
+        assert!(Transfer::run(TransferMode::Move, &[PathBuf::from("/")], &dst).is_err());
+        let _ = std::fs::remove_dir_all(&dst);
+    }
+
+    #[test]
+    fn hostile_names_copy_exactly() {
+        let root = scratch("hostile");
+        let dst = root.join("dst");
+        let names = ["-rf", "$(touch PWNED)", "@etc-passwd", "a; touch PWNED", "<img src=x>"];
+        let srcs: Vec<PathBuf> = names.iter().map(|n| { let p = root.join(n); std::fs::write(&p, n).unwrap(); p }).collect();
+        let out = Transfer::run(TransferMode::Copy, &srcs, &dst).unwrap();
+        for (o, n) in out.iter().zip(names) {
+            assert_eq!(o.file_name().unwrap().to_string_lossy(), n);
+            assert_eq!(std::fs::read_to_string(o).unwrap(), n);
+        }
+        assert!(!root.join("PWNED").exists() && !dst.join("PWNED").exists());
         let _ = std::fs::remove_dir_all(&root);
     }
 }

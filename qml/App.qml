@@ -180,7 +180,9 @@ Rectangle {
                         app.filterAndDisplayEntries();
                         app.selectedItem = null;
                         app.selectedPaths = [];
-                        app.errorMessage = "";
+                        app.errorMessage = data.truncated
+                            ? (app.isPt ? "Pasta muito grande: mostrando só os primeiros 200.000 itens" : "Very large folder: showing only the first 200,000 items")
+                            : "";
                         app.forceActiveFocus();
                         app.applyPendingSelection("left");
 

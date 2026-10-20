@@ -358,7 +358,15 @@ impl Extractor {
     /// Escreve um arquivo regular lendo no máximo `declared` bytes (a entrada não pode mentir sobre o tamanho)
     fn write_file(&mut self, rel: &Path, mode: u32, reader: &mut dyn Read, declared: u64, prog: &mut Progress, on_bytes: &mut dyn FnMut(u64) -> u64) -> io::Result<()> {
         let full = prepare_parent(&self.root, rel)?;
-        let mut out = create_new_file(&full)?;
+        // Em sistemas sem diferenciar maiúsculas (FAT/NTFS), "README" e "readme" colidem: o segundo é ignorado, nunca sobrescreve
+        let mut out = match create_new_file(&full) {
+            Ok(f) => f,
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                self.skipped += 1;
+                return Ok(());
+            }
+            Err(e) => return Err(e),
+        };
         let mut buf = vec![0u8; CHUNK];
         let mut remaining = declared;
         while remaining > 0 {
@@ -1090,5 +1098,40 @@ mod tests {
         assert!(compress(ArchiveFormat::Zip, &[root.join("x/a"), root.join("y/a")], &root, Some("Pack")).is_err());
         assert_eq!(fs::read_dir(&root).unwrap().filter_map(|e| e.ok()).filter(|e| e.file_name().to_string_lossy().starts_with('.')).count(), 0, "sem temporários");
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn colliding_names_are_skipped_never_overwritten() {
+        let root = scratch("collide");
+        let out = root.join("out");
+        fs::create_dir_all(&out).unwrap();
+        use tar::EntryType as T;
+        // Mesma entrada duas vezes (em FAT/NTFS "README" e "readme" colidem do mesmo jeito)
+        let data = raw_tar_gz(&[("a.txt", T::Regular, b"first", 0o644, ""), ("b/../a.txt", T::Regular, b"x", 0o644, ""), ("a.txt", T::Regular, b"second", 0o644, "")]);
+        let archive = root.join("c.tar.gz");
+        fs::write(&archive, data).unwrap();
+        let dir = extract(&archive, &out).unwrap();
+        assert_eq!(fs::read_to_string(dir.join("a.txt")).unwrap(), "first");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn hostile_names_survive_a_compress_extract_roundtrip() {
+        for format in [ArchiveFormat::Zip, ArchiveFormat::TarGz] {
+            let root = scratch("hostile-rt");
+            let src = root.join("pack");
+            fs::create_dir_all(&src).unwrap();
+            let names = ["-rf", "$(touch PWNED)", "@x", "a b; c", "<b>x<b>"];
+            for n in names {
+                fs::write(src.join(n), n).unwrap();
+            }
+            let arc = compress(format, &[src.clone()], &root, None).unwrap();
+            let dir = extract(&arc, &root).unwrap();
+            for n in names {
+                assert_eq!(fs::read_to_string(dir.join("pack").join(n)).unwrap(), n);
+            }
+            assert!(!root.join("PWNED").exists());
+            let _ = fs::remove_dir_all(&root);
+        }
     }
 }

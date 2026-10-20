@@ -157,6 +157,7 @@ kappa-file-manager/
    - Abrir arquivo: o backend (`--open`) devolve `needs_confirm` para executáveis, scripts e lançadores (por conteúdo); o QML mostra `ConfirmModal` e só então chama `--open <caminho> --confirmed`.
    - Nomes novos passam por `validate_file_name`; caminhos da CLI por `require_absolute`; ids KDE e dispositivos de bloco por `validate_device_id` / `validate_block_device`; exclusão por `ensure_not_protected`. Imagens usam `KappaSafe.previewUrl` (extensões permitidas, até 32 MiB, `sourceSize`). Mapa completo em `SECURITY.md`.
    - O backend recusa rodar como root (`root_allowed`); aberturas de origem usam `O_NOFOLLOW`, movimentações `RENAME_NOREPLACE`. Kappa não guarda histórico, não grava cache de miniaturas, não aceita drag-and-drop e só lida com caminhos simples (sem `trash://`/`recent://`). Se isso mudar, atualize `SECURITY.md`.
+   - Mover entre discos: copia, `fsync`, confere tamanho e só então apaga a origem; falha remove o destino parcial. Apagar/mover/lixeira de pasta com ponto de montagem é recusado (`contains_mount`). Listagens têm teto de 200.000 itens (`MAX_LISTED_ENTRIES`); prévias exigem `is_regular`.
 
 ---
 

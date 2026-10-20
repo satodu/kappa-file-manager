@@ -29,7 +29,12 @@ pub struct FolderContent {
     pub entries: Vec<FileEntry>,
     pub total_items: usize,
     pub hidden_count: usize,
+    /// A pasta tinha mais itens que `MAX_LISTED_ENTRIES`; só os primeiros foram lidos
+    pub truncated: bool,
 }
+
+/// Teto de itens listados por pasta: uma pasta com milhões de entradas não pode travar nem esgotar a memória do app
+pub const MAX_LISTED_ENTRIES: usize = 200_000;
 
 pub struct FolderLoader;
 
@@ -43,8 +48,13 @@ impl FolderLoader {
         let read_dir = std::fs::read_dir(path)?;
         let mut entries = Vec::new();
         let mut hidden_count = 0;
+        let mut truncated = false;
 
         for res in read_dir {
+            if entries.len() >= MAX_LISTED_ENTRIES {
+                truncated = true;
+                break;
+            }
             if let Ok(item) = res {
                 if let Ok(entry) = FileEntry::from_path(item.path()) {
                     if entry.is_hidden {
@@ -84,6 +94,7 @@ impl FolderLoader {
             entries,
             total_items,
             hidden_count,
+            truncated,
         })
     }
 }

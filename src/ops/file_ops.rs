@@ -48,6 +48,40 @@ pub fn validate_device_id(id: &str) -> std::io::Result<()> {
     if ok { Ok(()) } else { Err(invalid("Id de dispositivo inválido")) }
 }
 
+/// Lê os pontos de montagem de uma tabela no formato de `/proc/self/mountinfo` (com `\040` etc. decodificado)
+pub fn parse_mountinfo(text: &str) -> Vec<PathBuf> {
+    text.lines()
+        .filter_map(|line| line.split(' ').nth(4))
+        .map(|raw| {
+            let b = raw.as_bytes();
+            let mut out = Vec::with_capacity(b.len());
+            let mut i = 0;
+            while i < b.len() {
+                if b[i] == b'\\' && i + 4 <= b.len() && b[i + 1..i + 4].iter().all(|c| (b'0'..=b'7').contains(c)) {
+                    let v = (b[i + 1] - b'0') * 64 + (b[i + 2] - b'0') * 8 + (b[i + 3] - b'0');
+                    out.push(v);
+                    i += 4;
+                } else {
+                    out.push(b[i]);
+                    i += 1;
+                }
+            }
+            PathBuf::from(std::ffi::OsString::from(String::from_utf8_lossy(&out).to_string()))
+        })
+        .collect()
+}
+
+/// A pasta (ou algo dentro dela) é ponto de montagem? Apagar ou mover uma árvore assim esvaziaria outro disco
+/// (pendrive, compartilhamento de rede, celular montado).
+pub fn contains_mount(path: &Path) -> bool {
+    let Ok(canon) = std::fs::canonicalize(path) else { return false };
+    if !canon.is_dir() {
+        return false;
+    }
+    let table = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
+    parse_mountinfo(&table).iter().any(|mp| mp.starts_with(&canon))
+}
+
 /// Dispositivo de bloco: só `/dev/<nome>` simples (sem `..`, espaços ou opções disfarçadas)
 pub fn validate_block_device(dev: &str) -> std::io::Result<()> {
     let ok = dev.starts_with("/dev/")
@@ -146,6 +180,9 @@ impl FileOperations {
         if let Err(e) = require_absolute(&p.to_string_lossy()).and_then(|_| ensure_not_protected(p)) {
             return Err(trash::Error::Unknown { description: e.to_string() });
         }
+        if std::fs::symlink_metadata(p).map(|m| m.is_dir()).unwrap_or(false) && contains_mount(p) {
+            return Err(trash::Error::Unknown { description: "A pasta contém um ponto de montagem (disco ou compartilhamento) e não será removida".into() });
+        }
         trash::delete(p)
     }
 
@@ -155,6 +192,9 @@ impl FileOperations {
         require_absolute(&p.to_string_lossy())?;
         ensure_not_protected(p)?;
         let meta = std::fs::symlink_metadata(p)?;
+        if meta.is_dir() && contains_mount(p) {
+            return Err(invalid("A pasta contém um ponto de montagem (disco ou compartilhamento) e não será apagada"));
+        }
         if meta.is_dir() {
             std::fs::remove_dir_all(p)
         } else {
@@ -465,6 +505,52 @@ mod tests {
         assert!(FileOperations::delete_permanently("relativo/x").is_err());
         assert!(FileOperations::delete_permanently("/").is_err());
         assert!(require_absolute("-rf").is_err());
+    }
+
+    #[test]
+    fn mountinfo_is_parsed_with_escapes() {
+        let table = "36 35 98:0 /mnt1 /mnt/with\\040space rw - ext3 /dev/root rw\n40 36 0:35 / /home rw - ext4 /dev/sda1 rw\n";
+        let mps = parse_mountinfo(table);
+        assert_eq!(mps, vec![PathBuf::from("/mnt/with space"), PathBuf::from("/home")]);
+    }
+
+    #[test]
+    fn folders_holding_mounts_are_refused() {
+        // /proc é sempre um ponto de montagem; "/" contém todos
+        assert!(contains_mount(Path::new("/proc")));
+        assert!(contains_mount(Path::new("/")));
+        let root = scratch("nomount");
+        assert!(!contains_mount(&root));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn deleting_a_link_never_touches_its_target() {
+        let root = scratch("dellink");
+        std::fs::create_dir_all(root.join("real")).unwrap();
+        std::fs::write(root.join("real/keep.txt"), "keep").unwrap();
+        std::os::unix::fs::symlink(root.join("real"), root.join("link")).unwrap();
+        FileOperations::delete_permanently(root.join("link")).unwrap();
+        assert!(!root.join("link").exists());
+        assert_eq!(std::fs::read_to_string(root.join("real/keep.txt")).unwrap(), "keep");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn hostile_file_names_stay_inert() {
+        let root = scratch("hostile");
+        // Nomes que viram opção, comando, arquivo de argumentos ou HTML se passados adiante sem cuidado
+        let names = ["-rf", "--help", "$(touch PWNED)", "`touch PWNED`", "a; touch PWNED", "@etc-passwd", "<b>x<b>", "x && touch PWNED", "*", "~", "con\u{202e}txt.exe"];
+        for n in names {
+            let made = FileOperations::create_folder(&root, n).unwrap();
+            assert_eq!(made.file_name().unwrap().to_string_lossy(), n);
+            let renamed = FileOperations::rename_item(&made, &format!("{n}-2")).unwrap();
+            assert!(renamed.is_dir());
+        }
+        assert!(!root.join("PWNED").exists() && !Path::new("PWNED").exists());
+        // Todas as pastas existem exatamente com os nomes pedidos
+        assert_eq!(std::fs::read_dir(&root).unwrap().count(), names.len());
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

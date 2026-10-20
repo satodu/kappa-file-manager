@@ -58,6 +58,7 @@ async fn main() {
                             "entries": content.entries,
                             "total": content.total_items,
                             "hidden": content.hidden_count,
+                            "truncated": content.truncated,
                             "ok": true
                         });
                         println!("{}", json);
