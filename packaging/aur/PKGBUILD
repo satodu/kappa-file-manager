@@ -1,6 +1,6 @@
 # Maintainer: satodu <sato.du@gmail.com>
 pkgname=kappa-file-manager
-pkgver=0.1.0_beta
+pkgver=0.1.0_beta.1
 pkgrel=1
 pkgdesc='Brutalist file manager for Ryoku OS (Rust core, Quickshell UI); independent community project'
 arch=('x86_64' 'aarch64')
@@ -54,5 +54,6 @@ package() {
   install -Dm755 "packaging/$pkgname" "$pkgdir/usr/bin/$pkgname"
   install -Dm644 "packaging/$pkgname.desktop" "$pkgdir/usr/share/applications/$pkgname.desktop"
   install -Dm644 "packaging/$pkgname.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/$pkgname.svg"
+  install -Dm644 assets/logo.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/$pkgname.png"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

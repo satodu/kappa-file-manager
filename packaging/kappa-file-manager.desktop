@@ -8,4 +8,4 @@ Icon=kappa-file-manager
 Terminal=false
 Categories=System;FileTools;FileManager;Utility;
 Keywords=files;folders;explorer;manager;
-StartupWMClass=org.quickshell
+StartupWMClass=kappa-file-manager

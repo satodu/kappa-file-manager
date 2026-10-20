@@ -318,6 +318,10 @@ async fn main() {
             println!("» Lançando Kappa File Manager UI via Quickshell: {}", qml_shell.display());
             let mut cmd = Command::new("quickshell");
             cmd.arg("-p").arg(&qml_shell);
+            // Classe da janela (app_id): faz a dock e o launcher associarem a janela ao kappa-file-manager.desktop
+            if env::var_os("QS_APP_ID").is_none() {
+                cmd.env("QS_APP_ID", "kappa-file-manager");
+            }
             if env::var_os("KAPPA_BACKEND").is_none() {
                 if let Some(exe) = &exe {
                     cmd.env("KAPPA_BACKEND", exe);

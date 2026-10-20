@@ -6,7 +6,7 @@
 
 A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
 
-> Version **0.1.0-beta**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
+> Version **0.1.0-beta.1**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
 
 Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's best ideas (transparent device browsing, KIO-Fuse, KDE Connect integration, XDG places, a clean separation of model and view) and rebuilds them from scratch on a fast **Rust 2024** core, wearing the Ryoku design system.
 

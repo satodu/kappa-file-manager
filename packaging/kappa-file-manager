@@ -1,5 +1,6 @@
 #!/bin/sh
 # Launcher for Kappa File Manager: starts the QML interface with the installed Rust backend.
+export QS_APP_ID="${QS_APP_ID:-kappa-file-manager}"
 export KAPPA_BACKEND="${KAPPA_BACKEND:-/usr/lib/kappa-file-manager/kappa-file-manager}"
 export QT_PLUGIN_PATH="/usr/lib/qt6/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
 exec quickshell -p /usr/share/kappa-file-manager/qml/shell.qml "$@"
