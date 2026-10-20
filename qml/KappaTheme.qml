@@ -40,6 +40,17 @@ Singleton {
 
     function usable(v) { return typeof v === "string" && v.length > 0; }
 
+    function validScheme(v) {
+        for (var i = 0; i < root.schemeNames.length; i++) {
+            if (root.schemeNames[i].id === v) return true;
+        }
+        return false;
+    }
+
+    function validSource(v) {
+        return v === "wallpaper" || (typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v));
+    }
+
     function pick(key, base) {
         if (root.fixed && root.usable(root.roles[key])) return root.roles[key];
         return base;
@@ -91,8 +102,9 @@ Singleton {
             if (!txt || txt.length === 0) return;
             var cfg = JSON.parse(txt);
             root.mode = cfg.mode === "fixed" ? "fixed" : "follow";
-            if (root.usable(cfg.scheme)) root.scheme = cfg.scheme;
-            if (root.usable(cfg.source)) root.source = cfg.source;
+            // Valores vão para a linha de comando do matugen: aceita só esquemas conhecidos e cores #rrggbb
+            if (root.validScheme(cfg.scheme)) root.scheme = cfg.scheme;
+            if (root.validSource(cfg.source)) root.source = cfg.source;
             if (cfg.appearance === "dark" || cfg.appearance === "light" || cfg.appearance === "system") root.appearance = cfg.appearance;
         } catch (e) {
             console.warn("Kappa: theme.json inválido:", e);
@@ -153,9 +165,9 @@ Singleton {
 
     // Aplica a configuração escolhida no diálogo
     function apply(cfg) {
-        root.mode = cfg.mode;
-        root.scheme = cfg.scheme;
-        root.source = cfg.source;
+        root.mode = cfg.mode === "fixed" ? "fixed" : "follow";
+        if (root.validScheme(cfg.scheme)) root.scheme = cfg.scheme;
+        if (root.validSource(cfg.source)) root.source = cfg.source;
         root.appearance = cfg.appearance;
         if (root.fixed) root.generate(cfg, true);
         root.save();

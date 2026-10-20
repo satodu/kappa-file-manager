@@ -9,8 +9,10 @@ impl FileOperations {
     /// Abre o arquivo ou pasta usando o aplicativo padrão do sistema (xdg-open)
     pub fn open_default(path: impl AsRef<Path>) -> std::io::Result<()> {
         let p = path.as_ref();
+        // Um nome começando com "-" seria lido como opção pelo xdg-open
+        let safe: PathBuf = if p.to_string_lossy().starts_with('-') { Path::new(".").join(p) } else { p.to_path_buf() };
         Command::new("xdg-open")
-            .arg(p)
+            .arg(&safe)
             .spawn()?
             .wait()?;
         Ok(())

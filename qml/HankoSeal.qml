@@ -48,6 +48,7 @@ Item {
             anchors.fill: parent
             rotation: (360 / seal._ringText.length) * index
             Text {
+                textFormat: Text.PlainText
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: seal.size * 0.035
                 text: seal._ringText.charAt(index)
@@ -65,6 +66,7 @@ Item {
         anchors.centerIn: parent
         spacing: 0
         Text {
+            textFormat: Text.PlainText
             anchors.horizontalCenter: parent.horizontalCenter
             text: seal.glyph
             color: seal.ink
@@ -73,6 +75,7 @@ Item {
             font.bold: true
         }
         Text {
+            textFormat: Text.PlainText
             anchors.horizontalCenter: parent.horizontalCenter
             visible: seal.date.length > 0
             text: seal.date

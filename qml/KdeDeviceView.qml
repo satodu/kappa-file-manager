@@ -19,6 +19,7 @@ Item {
 
     // Marca d'água monumental do Frame 425 (Nó 495: kanji 繋 no canto inferior direito)
     Text {
+        textFormat: Text.PlainText
         anchors.right: parent.right
         anchors.rightMargin: -29
         anchors.bottom: parent.bottom
@@ -55,6 +56,7 @@ Item {
                 border.color: KappaTheme.lineStrong
 
                 Text {
+                    textFormat: Text.PlainText
                     anchors.centerIn: parent
                     text: "󰄡"
                     font.family: Tokens.mono
@@ -69,6 +71,7 @@ Item {
                 spacing: 4
 
                 Text {
+                    textFormat: Text.PlainText
                     text: root.device ? root.device.label : "POCO X7 Pro"
                     font.family: Tokens.display
                     font.pixelSize: 26
@@ -77,6 +80,7 @@ Item {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     text: root.isPt ? "KDE Connect · dispositivo pareado" : "KDE Connect · paired device"
                     font.family: Tokens.mono
                     font.pixelSize: 12
@@ -106,6 +110,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: root.isPt ? "Conectado" : "Connected"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -122,6 +127,7 @@ Item {
             spacing: 8
 
             Text {
+                textFormat: Text.PlainText
                 text: "//"
                 font.family: Tokens.mono
                 font.pixelSize: 11
@@ -129,6 +135,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: root.isPt ? "ESTADO_" : "STATUS_"
                 font.family: Tokens.ui
                 font.pixelSize: 11
@@ -171,6 +178,7 @@ Item {
                     spacing: 4
 
                     Text {
+                        textFormat: Text.PlainText
                         text: root.isPt ? "BATERIA" : "BATTERY"
                         font.family: Tokens.mono
                         font.pixelSize: 10
@@ -178,6 +186,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "85 %"
                         font.family: Tokens.display
                         font.pixelSize: 24
@@ -186,6 +195,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: root.isPt ? "Descarregando · ~8 h restantes" : "Discharging · ~8 h remaining"
                         font.family: Tokens.ui
                         font.pixelSize: 11
@@ -223,6 +233,7 @@ Item {
                     spacing: 4
 
                     Text {
+                        textFormat: Text.PlainText
                         text: root.isPt ? "REDE" : "NETWORK"
                         font.family: Tokens.mono
                         font.pixelSize: 10
@@ -230,6 +241,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "Wi-Fi"
                         font.family: Tokens.display
                         font.pixelSize: 24
@@ -238,6 +250,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "192.168.0.12 · 5 GHz"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -263,6 +276,7 @@ Item {
                     spacing: 4
 
                     Text {
+                        textFormat: Text.PlainText
                         text: root.isPt ? "ARMAZENAMENTO" : "STORAGE"
                         font.family: Tokens.mono
                         font.pixelSize: 10
@@ -270,6 +284,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "128 / 512 GB"
                         font.family: Tokens.display
                         font.pixelSize: 24
@@ -278,6 +293,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: root.isPt ? "384 GB livres" : "384 GB free"
                         font.family: Tokens.ui
                         font.pixelSize: 11
@@ -307,6 +323,7 @@ Item {
             spacing: 8
 
             Text {
+                textFormat: Text.PlainText
                 text: "//"
                 font.family: Tokens.mono
                 font.pixelSize: 11
@@ -314,6 +331,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: root.isPt ? "ACESSO RÁPIDO_" : "QUICK ACCESS_"
                 font.family: Tokens.ui
                 font.pixelSize: 11
@@ -364,6 +382,7 @@ Item {
                         spacing: 12
 
                         Text {
+                            textFormat: Text.PlainText
                             text: modelData.icon
                             font.family: Tokens.mono
                             font.pixelSize: 22
@@ -373,6 +392,7 @@ Item {
                         ColumnLayout {
                             spacing: 2
                             Text {
+                                textFormat: Text.PlainText
                                 text: modelData.name
                                 font.family: Tokens.ui
                                 font.pixelSize: 14
@@ -380,6 +400,7 @@ Item {
                                 color: KappaTheme.ink
                             }
                             Text {
+                                textFormat: Text.PlainText
                                 text: root.isPt ? "Abrir pasta" : "Browse folder"
                                 font.family: Tokens.mono
                                 font.pixelSize: 10
@@ -425,12 +446,14 @@ Item {
                     anchors.centerIn: parent
                     spacing: 6
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰉋"
                         font.family: Tokens.mono
                         font.pixelSize: 12
                         color: browseMouse.containsMouse ? KappaTheme.paper : KappaTheme.sun
                     }
                     Text {
+                        textFormat: Text.PlainText
                         id: browseText
                         text: root.isPt ? "Explorar Arquivos" : "Browse Files"
                         font.family: Tokens.mono
@@ -465,8 +488,9 @@ Item {
                 RowLayout {
                     anchors.centerIn: parent
                     spacing: 6
-                    Text { text: "󰄡"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
+                    Text { textFormat: Text.PlainText; text: "󰄡"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
                     Text {
+                        textFormat: Text.PlainText
                         id: pingText
                         text: "Ping"
                         font.family: Tokens.mono
@@ -499,8 +523,9 @@ Item {
                 RowLayout {
                     anchors.centerIn: parent
                     spacing: 6
-                    Text { text: "󰂚"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
+                    Text { textFormat: Text.PlainText; text: "󰂚"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
                     Text {
+                        textFormat: Text.PlainText
                         id: ringText
                         text: root.isPt ? "Fazer Tocar" : "Ring Device"
                         font.family: Tokens.mono
@@ -533,8 +558,9 @@ Item {
                 RowLayout {
                     anchors.centerIn: parent
                     spacing: 6
-                    Text { text: "󰅌"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
+                    Text { textFormat: Text.PlainText; text: "󰅌"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
                     Text {
+                        textFormat: Text.PlainText
                         id: clipText
                         text: root.isPt ? "Enviar Clipboard" : "Send Clipboard"
                         font.family: Tokens.mono
@@ -567,8 +593,9 @@ Item {
                 RowLayout {
                     anchors.centerIn: parent
                     spacing: 6
-                    Text { text: "󰋊"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
+                    Text { textFormat: Text.PlainText; text: "󰋊"; font.family: Tokens.mono; font.pixelSize: 12; color: KappaTheme.sun }
                     Text {
+                        textFormat: Text.PlainText
                         id: mountText
                         text: root.isPt ? "Montar / Atualizar" : "Mount / Refresh"
                         font.family: Tokens.mono

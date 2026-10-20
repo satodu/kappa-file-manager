@@ -51,6 +51,7 @@ Rectangle {
                     spacing: 6
 
                     Text {
+                        textFormat: Text.PlainText
                         text: modelData.label
                         font.family: Tokens.ui
                         font.pixelSize: 11
@@ -59,6 +60,7 @@ Rectangle {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: String(root.counts[modelData.key] || 0)
                         font.family: Tokens.mono
                         font.pixelSize: 10
@@ -102,6 +104,7 @@ Rectangle {
                 border.color: root.searchScope === "folder" ? KappaTheme.lineStrong : "transparent"
 
                 Text {
+                    textFormat: Text.PlainText
                     id: scopeFolderText
                     anchors.centerIn: parent
                     text: root.isPt ? "Esta pasta" : "This folder"
@@ -129,6 +132,7 @@ Rectangle {
                 border.color: root.searchScope === "all" ? KappaTheme.lineStrong : "transparent"
 
                 Text {
+                    textFormat: Text.PlainText
                     id: scopeAllText
                     anchors.centerIn: parent
                     text: root.isPt ? "Tudo" : "All"
@@ -151,6 +155,7 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
         Text {
+            textFormat: Text.PlainText
             text: root.isPt ? "ordenar: relevância" : "sort: relevance"
             font.family: Tokens.mono
             font.pixelSize: 11

@@ -155,6 +155,7 @@ Rectangle {
             border.color: KappaTheme.line
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: "󰁝"
                 font.family: Tokens.mono
@@ -234,6 +235,7 @@ Rectangle {
                         spacing: 6
 
                         Text {
+                            textFormat: Text.PlainText
                             text: modelData.label
                             font.family: Tokens.ui
                             font.pixelSize: 13
@@ -254,6 +256,7 @@ Rectangle {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             visible: modelData.label !== "/"
                             text: "/"
                             font.family: Tokens.mono
@@ -359,8 +362,9 @@ Rectangle {
                                 spacing: 3
                                 Row {
                                     spacing: 8
-                                    Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
+                                    Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
                                     Text {
+                                        textFormat: Text.PlainText
                                         text: root.isPt ? "CAMINHO NÃO ENCONTRADO_" : "PATH NOT FOUND_"
                                         font.family: Tokens.ui
                                         font.pixelSize: 11
@@ -370,6 +374,7 @@ Rectangle {
                                     }
                                 }
                                 Text {
+                                    textFormat: Text.PlainText
                                     visible: root.nearestParent !== ""
                                     text: (root.isPt ? "Ir para " : "Go to ") + root.nearestParent
                                     font.family: Tokens.mono
@@ -405,12 +410,14 @@ Rectangle {
                                     anchors.leftMargin: 8
                                     spacing: 8
                                     Text {
+                                        textFormat: Text.PlainText
                                         text: modelData.is_dir ? "󰉋" : "󰈔"
                                         font.family: Tokens.mono
                                         font.pixelSize: 13
                                         color: modelData.is_dir ? KappaTheme.sun : KappaTheme.inkDim
                                     }
                                     Text {
+                                        textFormat: Text.PlainText
                                         text: modelData.full_path
                                         font.family: Tokens.mono
                                         font.pixelSize: 12
@@ -449,6 +456,7 @@ Rectangle {
                 spacing: 12
 
                 Text {
+                    textFormat: Text.PlainText
                     text: root.isPt ? "Ordenar" : "Sort"
                     font.family: Tokens.ui
                     font.pixelSize: 12
@@ -456,6 +464,7 @@ Rectangle {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     text: root.sortLabel
                     font.family: Tokens.mono
                     font.pixelSize: 11
@@ -492,6 +501,7 @@ Rectangle {
                 spacing: 12
 
                 Text {
+                    textFormat: Text.PlainText
                     text: root.isPt ? "Agrupar" : "Group"
                     font.family: Tokens.ui
                     font.pixelSize: 12
@@ -499,6 +509,7 @@ Rectangle {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     text: root.groupByType ? (root.isPt ? "Tipo" : "Type") : (root.isPt ? "Nenhum" : "None")
                     font.family: Tokens.mono
                     font.pixelSize: 11
@@ -532,6 +543,7 @@ Rectangle {
                 anchors.rightMargin: 10
 
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: root.isPt ? "Lista" : "List"
                     font.family: Tokens.ui
@@ -553,6 +565,7 @@ Rectangle {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: root.isPt ? "Grade" : "Grid"
                     font.family: Tokens.ui
@@ -580,6 +593,7 @@ Rectangle {
             visible: !root.isCompact
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: "󰤼"
                 font.family: Tokens.mono
@@ -607,6 +621,7 @@ Rectangle {
             visible: !root.isCompact
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: "󰋽"
                 font.family: Tokens.mono
@@ -634,6 +649,7 @@ Rectangle {
             visible: root.showCloseSplit
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: "󰅖"
                 font.family: Tokens.mono

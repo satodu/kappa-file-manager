@@ -35,6 +35,7 @@ Rectangle {
             spacing: 8
 
             Text {
+                textFormat: Text.PlainText
                 text: "//"
                 font.family: Tokens.mono
                 font.pixelSize: 11
@@ -42,6 +43,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: root.isPt ? "LUGARES_" : "PLACES_"
                 font.family: Tokens.ui
                 font.pixelSize: 11
@@ -98,6 +100,7 @@ Rectangle {
                     spacing: 12
 
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             switch(modelData.icon_name) {
                                 case "home": return "󰋜"
@@ -115,6 +118,7 @@ Rectangle {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: modelData.label
                         font.family: Tokens.ui
@@ -150,6 +154,7 @@ Rectangle {
             spacing: 8
 
             Text {
+                textFormat: Text.PlainText
                 text: "//"
                 font.family: Tokens.mono
                 font.pixelSize: 11
@@ -157,6 +162,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: root.isPt ? "DISPOSITIVOS_" : "DEVICES_"
                 font.family: Tokens.ui
                 font.pixelSize: 11
@@ -234,6 +240,7 @@ Rectangle {
 
                     // Ícone correspondente (Nó 2466 para USB, Nó 2470 para celular)
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             if (modelData.is_network || modelData.icon_name === "phone") {
                                 return "󰄡"
@@ -250,6 +257,7 @@ Rectangle {
 
                     // Nome e Detalhe de armazenamento (ex: "Kingston · 64 GB", "POCO X7 Pro")
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: {
                             if (modelData.is_network) {
@@ -276,6 +284,7 @@ Rectangle {
                         z: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             anchors.centerIn: parent
                             text: "⏏"
                             font.family: Tokens.mono
@@ -305,6 +314,7 @@ Rectangle {
                         visible: modelData.is_network
 
                         Text {
+                            textFormat: Text.PlainText
                             anchors.centerIn: parent
                             text: "KDE"
                             font.family: Tokens.mono
@@ -345,6 +355,7 @@ Rectangle {
                     border.color: KappaTheme.line
 
                     Text {
+                        textFormat: Text.PlainText
                         id: marginaliaText
                         anchors.centerIn: parent
                         text: "00 // KAPPA"
@@ -355,6 +366,7 @@ Rectangle {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     text: "//////"
                     font.family: Tokens.mono
                     font.pixelSize: 10

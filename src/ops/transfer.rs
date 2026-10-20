@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -30,6 +31,16 @@ pub struct Transfer {
     last_emit: Instant,
 }
 
+trait ModeBits {
+    fn mode_bits(&self) -> u32;
+}
+
+impl ModeBits for std::fs::Permissions {
+    fn mode_bits(&self) -> u32 {
+        std::os::unix::fs::PermissionsExt::mode(self) & 0o7777
+    }
+}
+
 fn emit(value: serde_json::Value) {
     let mut out = std::io::stdout().lock();
     let _ = writeln!(out, "{}", value);
@@ -56,7 +67,14 @@ impl Transfer {
             FileOperations::ensure_not_into_self(src, dst_dir)?;
         }
 
-        let total: u64 = sources.iter().map(|s| if s.is_dir() { tree_size(s) } else { s.metadata().map(|m| m.len()).unwrap_or(0) }).sum();
+        let total: u64 = sources
+            .iter()
+            .map(|s| match std::fs::symlink_metadata(s) {
+                Ok(m) if m.is_dir() => tree_size(s),
+                Ok(m) if m.is_file() => m.len(),
+                _ => 0,
+            })
+            .sum();
         let now = Instant::now();
         let mut t = Transfer {
             mode,
@@ -83,7 +101,8 @@ impl Transfer {
             t.index = i;
             let file_name = src.file_name().ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Nome de arquivo inválido"))?;
             t.name = file_name.to_string_lossy().to_string();
-            let target = FileOperations::find_unique_target_path(dst_dir, file_name, src.is_dir());
+            let is_real_dir = std::fs::symlink_metadata(src).map(|m| m.is_dir()).unwrap_or(false);
+            let target = FileOperations::find_unique_target_path(dst_dir, file_name, is_real_dir);
             t.dest = target.clone();
             t.progress(true);
             t.transfer_one(src, &target)?;
@@ -127,14 +146,20 @@ impl Transfer {
             }
         }
 
-        if src.is_dir() {
+        let ty = std::fs::symlink_metadata(src)?.file_type();
+        if ty.is_symlink() {
+            // Links são recriados como links, nunca seguidos (evita copiar o que está fora da árvore)
+            std::os::unix::fs::symlink(std::fs::read_link(src)?, target)?;
+        } else if ty.is_dir() {
             self.copy_dir(src, target)?;
-        } else {
+        } else if ty.is_file() {
             self.copy_file(src, target)?;
+        } else {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Tipo de arquivo não suportado (pipe, socket ou dispositivo)"));
         }
 
         if self.mode == TransferMode::Move {
-            if src.is_dir() {
+            if ty.is_dir() {
                 std::fs::remove_dir_all(src)?;
             } else {
                 std::fs::remove_file(src)?;
@@ -154,16 +179,19 @@ impl Transfer {
                 std::os::unix::fs::symlink(link, &child_dst)?;
             } else if ty.is_dir() {
                 self.copy_dir(&entry.path(), &child_dst)?;
-            } else {
+            } else if ty.is_file() {
                 self.copy_file(&entry.path(), &child_dst)?;
             }
+            // pipes, sockets e dispositivos são ignorados: abrir um pipe travaria a cópia
         }
         Ok(())
     }
 
     fn copy_file(&mut self, src: &Path, dst: &Path) -> std::io::Result<()> {
         let mut reader = std::fs::File::open(src)?;
-        let mut writer = std::fs::File::create(dst)?;
+        // Cria já com as permissões da origem (sujeitas ao umask), sem janela de arquivo exposto
+        let mode = reader.metadata()?.permissions().mode_bits();
+        let mut writer = std::fs::OpenOptions::new().write(true).create_new(true).mode(mode).open(dst)?;
         let mut buf = vec![0u8; CHUNK];
         loop {
             let n = reader.read(&mut buf)?;
@@ -175,9 +203,6 @@ impl Transfer {
             self.progress(false);
         }
         writer.flush()?;
-        if let Ok(meta) = src.metadata() {
-            let _ = std::fs::set_permissions(dst, meta.permissions());
-        }
         Ok(())
     }
 }
@@ -223,4 +248,22 @@ mod tests {
         assert!(dst.join("d/x").exists());
         let _ = std::fs::remove_dir_all(&root);
     }
+
+    #[test]
+    fn symlinks_are_copied_as_links_and_pipes_are_skipped() {
+        let root = scratch("links");
+        let dst = root.join("dst");
+        std::fs::create_dir_all(root.join("outside")).unwrap();
+        std::fs::write(root.join("outside/secret"), "s").unwrap();
+        std::fs::create_dir_all(root.join("tree")).unwrap();
+        std::os::unix::fs::symlink(root.join("outside"), root.join("tree/link")).unwrap();
+        std::process::Command::new("mkfifo").arg(root.join("tree/pipe")).status().unwrap();
+
+        Transfer::run(TransferMode::Copy, &[root.join("tree")], &dst).unwrap();
+        let copied = dst.join("tree/link");
+        assert!(std::fs::symlink_metadata(&copied).unwrap().file_type().is_symlink());
+        assert!(!dst.join("tree/pipe").exists());
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }
+

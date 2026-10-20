@@ -145,6 +145,10 @@ impl Places {
 
     /// Obtém o ponto de montagem real e acessível do dispositivo KDE Connect
     pub fn get_kde_mount_point(dev_id: &str) -> PathBuf {
+        // O id vira parte de caminhos e de argumentos do DBus: aceita só o alfabeto dos ids do KDE Connect
+        if dev_id.is_empty() || !dev_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+            return PathBuf::new();
+        }
         // 1. Assegura que o KDE Connect monte o dispositivo via SFTP
         let _ = Command::new("kdeconnect-cli")
             .arg("-d")

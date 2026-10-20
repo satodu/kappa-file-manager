@@ -127,6 +127,7 @@ Item {
 
     // Marca d'água monumental do Figcraft (Nó 143: 440x637 no canto inferior direito)
     Text {
+        textFormat: Text.PlainText
         anchors.right: parent.right
         anchors.rightMargin: -29
         anchors.bottom: parent.bottom
@@ -168,6 +169,7 @@ Item {
                     spacing: 6
 
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             if (root.sortField === "name") {
                                 return (root.isPt ? "NOME " : "NAME ") + (root.sortDirection === "asc" ? "↑" : "↓");
@@ -200,6 +202,7 @@ Item {
                     spacing: 6
 
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             if (root.sortField === "type") {
                                 return (root.isPt ? "TIPO " : "TYPE ") + (root.sortDirection === "asc" ? "↑" : "↓");
@@ -231,6 +234,7 @@ Item {
                     spacing: 6
 
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             if (root.sortField === "modified") {
                                 return (root.isPt ? "MODIFICADO " : "MODIFIED ") + (root.sortDirection === "asc" ? "↑" : "↓");
@@ -262,6 +266,7 @@ Item {
                     spacing: 6
 
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             if (root.sortField === "size") {
                                 return (root.isPt ? "TAMANHO " : "SIZE ") + (root.sortDirection === "asc" ? "↑" : "↓");
@@ -346,6 +351,7 @@ Item {
                 spacing: 10
 
                 Text {
+                    textFormat: Text.PlainText
                     text: "//"
                     font.family: Tokens.mono
                     font.pixelSize: 11
@@ -353,6 +359,7 @@ Item {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     text: section
                     font.family: Tokens.ui
                     font.pixelSize: 11
@@ -412,6 +419,7 @@ Item {
                     spacing: 12
 
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             if (modelData.is_dir) return "󰉋";
                             switch(modelData.icon_name) {
@@ -430,6 +438,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: modelData.name
                         font.family: Tokens.ui
@@ -442,6 +451,7 @@ Item {
 
                 // Coluna Tipo
                 Text {
+                    textFormat: Text.PlainText
                     visible: root.showTypeColumn
                     Layout.preferredWidth: 150
                     text: root.formatFileType(modelData)
@@ -453,6 +463,7 @@ Item {
 
                 // Coluna Modificado
                 Text {
+                    textFormat: Text.PlainText
                     Layout.preferredWidth: 160
                     text: modelData.modified_formatted
                     font.family: Tokens.ui
@@ -462,6 +473,7 @@ Item {
 
                 // Coluna Tamanho
                 Text {
+                    textFormat: Text.PlainText
                     Layout.preferredWidth: 100
                     text: modelData.size_formatted
                     font.family: Tokens.mono
@@ -622,6 +634,7 @@ Item {
 
                     // Se for Pasta (Nó 911: Pasta grande 44x44)
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         visible: modelData.is_dir
                         text: "󰉋"
@@ -645,6 +658,7 @@ Item {
 
                     // Se for Áudio (Nó 967)
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         visible: !modelData.is_dir && modelData.kind === "audio"
                         text: "󰎆"
@@ -655,6 +669,7 @@ Item {
 
                     // Se for Vídeo
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         visible: !modelData.is_dir && modelData.kind === "video"
                         text: "󰕧"
@@ -665,6 +680,7 @@ Item {
 
                     // Se for Arquivo Comprimido
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         visible: !modelData.is_dir && modelData.kind === "archive"
                         text: "󰛫"
@@ -675,6 +691,7 @@ Item {
 
                     // Se for Outro Arquivo genérico
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         visible: !modelData.is_dir && modelData.kind !== "image" && modelData.kind !== "code" && modelData.kind !== "document" && modelData.kind !== "audio" && modelData.kind !== "video" && modelData.kind !== "archive"
                         text: "󰈔"
@@ -685,6 +702,7 @@ Item {
 
                     // Fallback para imagem que ainda não carregou
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         visible: modelData.kind === "image" && (!parent.children[0].visible || parent.children[0].status !== Image.Ready)
                         text: "󰋩"
@@ -696,6 +714,7 @@ Item {
 
                 // Nome do Arquivo / Pasta (Nó 912: 14px Space Grotesk)
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: modelData.name
                     font.family: Tokens.ui
@@ -708,6 +727,7 @@ Item {
 
                 // Metadados (Nó 913: 11px SpaceMono Nerd Font)
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: {
                         var sz = modelData.is_dir ? "—" : modelData.size_formatted;

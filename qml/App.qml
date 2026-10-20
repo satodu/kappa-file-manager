@@ -1504,8 +1504,9 @@ Rectangle {
                 anchors.rightMargin: 20
                 spacing: 10
 
-                Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
+                Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
                 Text {
+                    textFormat: Text.PlainText
                     text: app.isPt ? "ERRO_" : "ERROR_"
                     font.family: Tokens.ui
                     font.pixelSize: 11
@@ -1514,6 +1515,7 @@ Rectangle {
                     color: Tokens.sun
                 }
                 Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: app.errorMessage
                     elide: Text.ElideRight
@@ -1522,6 +1524,7 @@ Rectangle {
                     color: KappaTheme.ink
                 }
                 Text {
+                    textFormat: Text.PlainText
                     text: "×"
                     font.pixelSize: 18
                     color: KappaTheme.inkDim

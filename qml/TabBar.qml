@@ -69,6 +69,7 @@ Rectangle {
                     spacing: 8
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰉋"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -76,6 +77,7 @@ Rectangle {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         id: tabText
                         Layout.fillWidth: true
                         text: modelData.title || "Pasta"
@@ -96,6 +98,7 @@ Rectangle {
                         visible: root.tabs.length > 1
 
                         Text {
+                            textFormat: Text.PlainText
                             anchors.centerIn: parent
                             text: "󰅖"
                             font.family: Tokens.mono
@@ -132,6 +135,7 @@ Rectangle {
             border.color: KappaTheme.lineSoft
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: "+"
                 font.family: Tokens.mono
@@ -156,6 +160,7 @@ Rectangle {
 
         // Contador de abas (ex: "2 abas")
         Text {
+            textFormat: Text.PlainText
             text: root.tabs.length + " abas"
             font.family: Tokens.mono
             font.pixelSize: 11

@@ -87,6 +87,7 @@ Item {
                     border.width: 1.5
                     border.color: KappaTheme.sun
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: "名"
                         font.family: Tokens.jp
@@ -100,8 +101,9 @@ Item {
                     spacing: 3
                     RowLayout {
                         spacing: 8
-                        Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
+                        Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
                         Text {
+                            textFormat: Text.PlainText
                             text: root.isPt ? "RENOMEAR_" : "RENAME_"
                             font.family: Tokens.ui
                             font.pixelSize: 11
@@ -111,6 +113,7 @@ Item {
                         }
                     }
                     Text {
+                        textFormat: Text.PlainText
                         text: root.isPt ? "Novo nome" : "New name"
                         font.family: Tokens.display
                         font.pixelSize: 20
@@ -119,7 +122,7 @@ Item {
                 }
 
                 Item { Layout.fillWidth: true }
-                Text { text: "esc"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim; Layout.alignment: Qt.AlignTop }
+                Text { textFormat: Text.PlainText; text: "esc"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim; Layout.alignment: Qt.AlignTop }
             }
 
             Rectangle {
@@ -156,6 +159,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: 8
                 Text {
+                    textFormat: Text.PlainText
                     text: "Enter"
                     font.family: Tokens.mono
                     font.pixelSize: 11
@@ -171,6 +175,7 @@ Item {
                     border.width: 1
                     border.color: KappaTheme.line
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: root.isPt ? "Cancelar" : "Cancel"
                         font.family: Tokens.ui
@@ -192,6 +197,7 @@ Item {
                     radius: root.effectiveRadius
                     color: KappaTheme.sun
                     Text {
+                        textFormat: Text.PlainText
                         id: okLabel
                         anchors.centerIn: parent
                         text: root.isPt ? "Renomear" : "Rename"

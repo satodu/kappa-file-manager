@@ -116,6 +116,7 @@ Item {
                     border.color: root.finished ? KappaTheme.sun : root.accent
 
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: root.finished ? "✓" : (root.failed ? "!" : "河")
                         font.family: root.finished || root.failed ? Tokens.ui : Tokens.jp
@@ -130,8 +131,9 @@ Item {
 
                     RowLayout {
                         spacing: 8
-                        Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
+                        Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
                         Text {
+                            textFormat: Text.PlainText
                             text: root.verb
                             font.family: Tokens.ui
                             font.pixelSize: 11
@@ -142,6 +144,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: {
                             var n = root.items;
                             var where = root.destDir.split("/").pop() || "/";
@@ -159,6 +162,7 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 Text {
+                    textFormat: Text.PlainText
                     text: "×"
                     font.pixelSize: 20
                     color: KappaTheme.inkDim
@@ -172,6 +176,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 visible: root.failed && root.errorText !== ""
                 text: root.errorText
@@ -182,6 +187,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 text: root.name
                 elide: Text.ElideMiddle
@@ -209,6 +215,7 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Text {
+                    textFormat: Text.PlainText
                     text: root.finished
                           ? (root.formatSize(root.done) + " / " + root.formatSize(root.done))
                           : (root.formatSize(root.done) + " / " + root.formatSize(root.total))
@@ -218,6 +225,7 @@ Item {
                 }
                 Item { Layout.fillWidth: true }
                 Text {
+                    textFormat: Text.PlainText
                     text: root.finished ? "100%" : (root.state === "paused"
                           ? (root.isPt ? "pausado" : "paused")
                           : (root.speed > 0 ? root.formatSize(root.speed) + "/s" + (root.formatEta() !== "" ? " · " + root.formatEta() : "") : Math.round(root.fraction * 100) + "%"))
@@ -242,6 +250,7 @@ Item {
                     border.width: 1
                     border.color: KappaTheme.line
                     Text {
+                        textFormat: Text.PlainText
                         id: pauseLabel
                         anchors.centerIn: parent
                         text: root.state === "paused" ? (root.isPt ? "Continuar" : "Resume") : (root.isPt ? "Pausar" : "Pause")
@@ -267,6 +276,7 @@ Item {
                     border.width: 1
                     border.color: Tokens.sun
                     Text {
+                        textFormat: Text.PlainText
                         id: cancelLabel
                         anchors.centerIn: parent
                         text: root.isPt ? "Cancelar" : "Cancel"
@@ -292,6 +302,7 @@ Item {
                     border.width: 1
                     border.color: KappaTheme.sun
                     Text {
+                        textFormat: Text.PlainText
                         id: revealLabel
                         anchors.centerIn: parent
                         text: root.isPt ? "Mostrar na pasta" : "Show in folder"
@@ -315,6 +326,7 @@ Item {
                     border.width: 1
                     border.color: KappaTheme.line
                     Text {
+                        textFormat: Text.PlainText
                         id: closeLabel
                         anchors.centerIn: parent
                         text: root.isPt ? "Fechar" : "Close"

@@ -51,6 +51,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: "Kappa"
                 font.family: Tokens.display
                 font.pixelSize: 20
@@ -60,6 +61,7 @@ Rectangle {
 
             // Kana oficial: "ファイル"
             Text {
+                textFormat: Text.PlainText
                 text: "ファイル"
                 font.family: Tokens.jp
                 font.pixelSize: 12
@@ -78,6 +80,7 @@ Rectangle {
             border.color: KappaTheme.lineStrong
 
             Text {
+                textFormat: Text.PlainText
                 id: badgeText
                 anchors.centerIn: parent
                 text: root.activePlate
@@ -96,6 +99,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: "//////"
                 font.family: Tokens.mono
                 font.pixelSize: 11
@@ -121,6 +125,7 @@ Rectangle {
                 spacing: 8
 
                 Text {
+                    textFormat: Text.PlainText
                     text: "󰍉"
                     font.family: Tokens.mono
                     font.pixelSize: 13
@@ -137,6 +142,7 @@ Rectangle {
                     clip: true
 
                     Text {
+                        textFormat: Text.PlainText
                         anchors.fill: parent
                         text: root.isPt ? ("Buscar em " + root.currentFolder + "…") : ("Search in " + root.currentFolder + "…")
                         color: KappaTheme.inkFaint
@@ -192,6 +198,7 @@ Rectangle {
                     visible: !searchInput.text
 
                     Text {
+                        textFormat: Text.PlainText
                         id: atalhoText
                         anchors.centerIn: parent
                         text: "Ctrl+F"
@@ -209,6 +216,7 @@ Rectangle {
 
                 // Botão limpar busca
                 Text {
+                    textFormat: Text.PlainText
                     text: "󰅖"
                     font.family: Tokens.mono
                     font.pixelSize: 11

@@ -91,6 +91,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰁨"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -98,6 +99,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Nome" : "Name"
                         font.family: Tokens.ui
@@ -107,6 +109,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "✓"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -139,6 +142,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰈙"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -146,6 +150,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Tipo" : "Type"
                         font.family: Tokens.ui
@@ -155,6 +160,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "✓"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -187,6 +193,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰃭"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -194,6 +201,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Data" : "Date"
                         font.family: Tokens.ui
@@ -203,6 +211,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "✓"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -235,6 +244,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰆼"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -242,6 +252,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Tamanho" : "Size"
                         font.family: Tokens.ui
@@ -251,6 +262,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "✓"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -290,6 +302,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰁝"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -297,6 +310,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Crescente" : "Ascending"
                         font.family: Tokens.ui
@@ -306,6 +320,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "A→Z"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -313,6 +328,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "✓"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -345,6 +361,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰁅"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -352,6 +369,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Decrescente" : "Descending"
                         font.family: Tokens.ui
@@ -361,6 +379,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "Z→A"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -368,6 +387,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "✓"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -407,6 +427,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰅪"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -414,6 +435,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Agrupar por tipo" : "Group by type"
                         font.family: Tokens.ui
@@ -423,6 +445,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "✓"
                         font.family: Tokens.mono
                         font.pixelSize: 11

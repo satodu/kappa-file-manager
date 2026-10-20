@@ -38,6 +38,7 @@ Rectangle {
             spacing: 8
 
             Text {
+                textFormat: Text.PlainText
                 text: "//"
                 font.family: Tokens.mono
                 font.pixelSize: 11
@@ -45,6 +46,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: root.isPt ? "PREVIEW_" : "PREVIEW_"
                 font.family: Tokens.ui
                 font.pixelSize: 11
@@ -68,6 +70,7 @@ Rectangle {
 
             // Botão fechar painel
             Text {
+                textFormat: Text.PlainText
                 text: "󰅖"
                 font.family: Tokens.mono
                 font.pixelSize: 12
@@ -107,6 +110,7 @@ Rectangle {
                 visible: !previewImg.visible
 
                 Text {
+                    textFormat: Text.PlainText
                     Layout.alignment: Qt.AlignHCenter
                     text: {
                         if (!root.fileItem) return "󰈔";
@@ -153,6 +157,7 @@ Rectangle {
                 border.color: KappaTheme.line
 
                 Text {
+                    textFormat: Text.PlainText
                     id: dimText
                     anchors.centerIn: parent
                     text: root.fileItem ? (root.fileItem.is_dir ? (root.isPt ? "Pasta" : "Folder") : root.fileItem.size_formatted) : ""
@@ -169,6 +174,7 @@ Rectangle {
             spacing: 2
 
             Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 text: root.fileItem ? root.fileItem.name : ""
                 font.family: Tokens.display
@@ -179,6 +185,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 text: {
                     if (!root.fileItem) return "";
@@ -205,6 +212,7 @@ Rectangle {
             spacing: 8
 
             Text {
+                textFormat: Text.PlainText
                 text: "//"
                 font.family: Tokens.mono
                 font.pixelSize: 11
@@ -212,6 +220,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: root.isPt ? "DETALHES_" : "DETAILS_"
                 font.family: Tokens.ui
                 font.pixelSize: 11
@@ -243,32 +252,32 @@ Rectangle {
             RowLayout {
                 Layout.fillWidth: true
                 height: 22
-                Text { text: root.isPt ? "TIPO" : "TYPE"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
-                Text { text: root.fileItem ? root.fileItem.mime_type : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideRight }
+                Text { textFormat: Text.PlainText; text: root.isPt ? "TIPO" : "TYPE"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { textFormat: Text.PlainText; text: root.fileItem ? root.fileItem.mime_type : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideRight }
             }
 
             // MODIFICADO
             RowLayout {
                 Layout.fillWidth: true
                 height: 22
-                Text { text: root.isPt ? "MODIFICADO" : "MODIFIED"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
-                Text { text: root.fileItem ? root.fileItem.modified_formatted : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideRight }
+                Text { textFormat: Text.PlainText; text: root.isPt ? "MODIFICADO" : "MODIFIED"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { textFormat: Text.PlainText; text: root.fileItem ? root.fileItem.modified_formatted : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideRight }
             }
 
             // TAMANHO
             RowLayout {
                 Layout.fillWidth: true
                 height: 22
-                Text { text: root.isPt ? "TAMANHO" : "SIZE"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
-                Text { text: root.fileItem ? root.fileItem.size_formatted : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true }
+                Text { textFormat: Text.PlainText; text: root.isPt ? "TAMANHO" : "SIZE"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { textFormat: Text.PlainText; text: root.fileItem ? root.fileItem.size_formatted : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true }
             }
 
             // LOCAL
             RowLayout {
                 Layout.fillWidth: true
                 height: 22
-                Text { text: root.isPt ? "LOCAL" : "LOCATION"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
-                Text { text: root.fileItem ? root.fileItem.path : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideMiddle }
+                Text { textFormat: Text.PlainText; text: root.isPt ? "LOCAL" : "LOCATION"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
+                Text { textFormat: Text.PlainText; text: root.fileItem ? root.fileItem.path : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideMiddle }
             }
         }
 
@@ -283,8 +292,8 @@ Rectangle {
                 Layout.preferredHeight: 20
                 spacing: 8
 
-                Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
-                Text { text: root.isPt ? "PALETA_" : "PALETTE_"; font.family: Tokens.ui; font.pixelSize: 11; font.bold: true; color: KappaTheme.inkDim }
+                Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
+                Text { textFormat: Text.PlainText; text: root.isPt ? "PALETA_" : "PALETTE_"; font.family: Tokens.ui; font.pixelSize: 11; font.bold: true; color: KappaTheme.inkDim }
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
@@ -329,6 +338,7 @@ Rectangle {
                 border.color: KappaTheme.lineStrong
 
                 Text {
+                    textFormat: Text.PlainText
                     anchors.centerIn: parent
                     text: root.isPt ? "Abrir" : "Open"
                     font.family: Tokens.ui
@@ -359,6 +369,7 @@ Rectangle {
                 border.color: KappaTheme.sun
 
                 Text {
+                    textFormat: Text.PlainText
                     anchors.centerIn: parent
                     text: root.isPt ? "Definir como wallpaper" : "Set as wallpaper"
                     font.family: Tokens.ui

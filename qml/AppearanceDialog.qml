@@ -117,6 +117,7 @@ Item {
                 color: chip.swatch
             }
             Text {
+                textFormat: Text.PlainText
                 text: chip.label
                 font.family: Tokens.ui
                 font.pixelSize: 13
@@ -137,8 +138,9 @@ Item {
         property string title: ""
         Layout.fillWidth: true
         spacing: 10
-        Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint }
+        Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint }
         Text {
+            textFormat: Text.PlainText
             text: parent.title
             font.family: Tokens.ui
             font.pixelSize: 11
@@ -173,20 +175,23 @@ Item {
                 Layout.fillWidth: true
                 spacing: 12
                 Text {
+                    textFormat: Text.PlainText
                     text: root.isPt ? "Aparência" : "Appearance"
                     font.family: Tokens.display
                     font.pixelSize: 22
                     color: KappaTheme.ink
                 }
                 Text {
+                    textFormat: Text.PlainText
                     text: "外観"
                     font.family: Tokens.jp
                     font.pixelSize: 12
                     color: KappaTheme.inkDim
                 }
                 Item { Layout.fillWidth: true }
-                Text { text: "esc"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
+                Text { textFormat: Text.PlainText; text: "esc"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
                 Text {
+                    textFormat: Text.PlainText
                     text: "×"
                     font.pixelSize: 20
                     color: KappaTheme.inkDim
@@ -203,6 +208,7 @@ Item {
                 Chip { label: root.isPt ? "Fixo no Kappa" : "Fixed in Kappa"; active: root.dFixed; onClicked: root.dMode = "fixed" }
             }
             Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 text: root.dFixed
@@ -329,6 +335,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: 8
                 Text {
+                    textFormat: Text.PlainText
                     text: "~/.config/kappa/theme.json"
                     font.family: Tokens.mono
                     font.pixelSize: 11
@@ -345,6 +352,7 @@ Item {
                     radius: root.effectiveRadius
                     color: KappaTheme.sun
                     Text {
+                        textFormat: Text.PlainText
                         id: applyLabel
                         anchors.centerIn: parent
                         text: root.isPt ? "Aplicar" : "Apply"

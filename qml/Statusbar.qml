@@ -44,6 +44,7 @@ Rectangle {
 
         // Contador de itens (ou progresso da transferência)
         Text {
+            textFormat: Text.PlainText
             text: root.transferring
                   ? ((root.transferMode === "move" ? (root.isPt ? "Movendo · " : "Moving · ") : (root.isPt ? "Copiando · " : "Copying · ")) + Math.round(root.transferFraction * 100) + "%")
                   : root.totalItems + (root.isPt ? " itens" : " items")
@@ -54,6 +55,7 @@ Rectangle {
 
         // Detalhe do item selecionado (estilo: "1 selecionado · wallpaper.png · 4,2 MB")
         Text {
+            textFormat: Text.PlainText
             text: {
                 if (!root.selectedItem) return "";
                 if (root.selectedCount > 1) {
@@ -84,6 +86,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: KappaTheme.fixed
                       ? (root.isPt ? "Tema: fixo · " : "Theme: fixed · ") + KappaTheme.summary
                       : (root.isPt ? "Tema: segue o wallpaper" : "Theme: follows wallpaper")

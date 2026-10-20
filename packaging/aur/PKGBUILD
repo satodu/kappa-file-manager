@@ -1,6 +1,6 @@
 # Maintainer: satodu <sato.du@gmail.com>
 pkgname=kappa-file-manager
-pkgver=0.1.0_beta.1
+pkgver=0.1.0_beta.2
 pkgrel=1
 pkgdesc='Brutalist file manager for Ryoku OS (Rust core, Quickshell UI); independent community project'
 arch=('x86_64' 'aarch64')

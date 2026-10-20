@@ -114,6 +114,7 @@ Item {
                     spacing: 8
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "//"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -121,6 +122,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "RYOTUNES_"
                         font.family: Tokens.ui
                         font.pixelSize: 11
@@ -157,6 +159,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰎆"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -164,6 +167,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Tocar no Ryotunes" : "Play in Ryotunes"
                             font.family: Tokens.ui
@@ -173,6 +177,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Enter"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -203,6 +208,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰐎"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -210,6 +216,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Adicionar à fila" : "Add to queue"
                             font.family: Tokens.ui
@@ -218,6 +225,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+Q"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -248,6 +256,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰒭"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -255,6 +264,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Tocar a seguir" : "Play next"
                             font.family: Tokens.ui
@@ -293,6 +303,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰈔"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -300,6 +311,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Abrir com" : "Open with"
                             font.family: Tokens.ui
@@ -308,6 +320,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "›"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -343,6 +356,7 @@ Item {
                     visible: root.isFolderContext
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "//"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -350,6 +364,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: (typeof app !== "undefined" && app && app.currentFolderName) ? (app.currentFolderName.toUpperCase() + "_") : "PASTA_"
                         font.family: Tokens.ui
                         font.pixelSize: 11
@@ -379,6 +394,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰈔"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -386,6 +402,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Abrir" : "Open"
                             font.family: Tokens.ui
@@ -394,6 +411,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Enter"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -425,6 +443,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰉋"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -432,6 +451,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Abrir em nova aba" : "Open in new tab"
                             font.family: Tokens.ui
@@ -440,6 +460,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+T"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -471,6 +492,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰅌"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -478,6 +500,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Colar" : "Paste"
                             font.family: Tokens.ui
@@ -487,6 +510,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+V"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -518,6 +542,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰉋"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -525,6 +550,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Nova pasta" : "New folder"
                             font.family: Tokens.ui
@@ -533,6 +559,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "F7"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -563,6 +590,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰞷"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -570,6 +598,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Abrir terminal aqui" : "Open terminal here"
                             font.family: Tokens.ui
@@ -578,6 +607,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+Alt+T"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -617,6 +647,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰆐"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -624,6 +655,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Recortar" : "Cut"
                             font.family: Tokens.ui
@@ -632,6 +664,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+X"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -663,6 +696,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰆏"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -670,6 +704,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Copiar" : "Copy"
                             font.family: Tokens.ui
@@ -678,6 +713,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+C"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -709,6 +745,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰅌"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -716,6 +753,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Colar" : "Paste"
                             font.family: Tokens.ui
@@ -724,6 +762,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+V"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -763,6 +802,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰒅"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -770,6 +810,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Selecionar tudo" : "Select all"
                             font.family: Tokens.ui
@@ -778,6 +819,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "Ctrl+A"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -809,6 +851,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "󰑐"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -816,6 +859,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: root.isPt ? "Recarregar" : "Refresh"
                             font.family: Tokens.ui
@@ -824,6 +868,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             text: "F5"
                             font.family: Tokens.mono
                             font.pixelSize: 11
@@ -869,6 +914,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰅂"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -876,6 +922,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Enviar para" : "Send to"
                         font.family: Tokens.ui
@@ -884,6 +931,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "›"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -924,6 +972,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰆏"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -931,6 +980,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Copiar" : "Copy"
                         font.family: Tokens.ui
@@ -939,6 +989,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "Ctrl+C"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -970,6 +1021,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰑕"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -977,6 +1029,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Renomear" : "Rename"
                         font.family: Tokens.ui
@@ -985,6 +1038,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "F2"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -1017,6 +1071,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰩹"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -1024,6 +1079,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Mover para a lixeira" : "Move to trash"
                         font.family: Tokens.ui
@@ -1032,6 +1088,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "Del"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -1070,6 +1127,7 @@ Item {
                     spacing: 10
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "󰋽"
                         font.family: Tokens.mono
                         font.pixelSize: 13
@@ -1077,6 +1135,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         Layout.fillWidth: true
                         text: root.isPt ? "Propriedades" : "Properties"
                         font.family: Tokens.ui
@@ -1085,6 +1144,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "Alt+Enter"
                         font.family: Tokens.mono
                         font.pixelSize: 11
@@ -1151,8 +1211,8 @@ Item {
                 Layout.rightMargin: 4
                 spacing: 8
 
-                Text { text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
-                Text { text: root.isPt ? "ENVIAR PARA_" : "SEND TO_"; font.family: Tokens.ui; font.pixelSize: 11; font.bold: true; color: KappaTheme.inkDim }
+                Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
+                Text { textFormat: Text.PlainText; text: root.isPt ? "ENVIAR PARA_" : "SEND TO_"; font.family: Tokens.ui; font.pixelSize: 11; font.bold: true; color: KappaTheme.inkDim }
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
@@ -1186,6 +1246,7 @@ Item {
                         spacing: 10
 
                         Text {
+                            textFormat: Text.PlainText
                             text: modelData.is_network ? "󰄡" : "󰋊"
                             font.family: Tokens.mono
                             font.pixelSize: 13
@@ -1193,6 +1254,7 @@ Item {
                         }
 
                         Text {
+                            textFormat: Text.PlainText
                             Layout.fillWidth: true
                             text: modelData.label
                             font.family: Tokens.ui
@@ -1211,6 +1273,7 @@ Item {
                             border.color: KappaTheme.lineStrong
 
                             Text {
+                                textFormat: Text.PlainText
                                 anchors.centerIn: parent
                                 text: modelData.is_network ? "KDE" : "USB"
                                 font.family: Tokens.mono
@@ -1255,8 +1318,8 @@ Item {
                     anchors.leftMargin: 10
                     anchors.rightMargin: 10
                     spacing: 10
-                    Text { text: "󰛫"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
-                    Text { Layout.fillWidth: true; text: root.isPt ? "Pasta compactada (.zip)" : "Compressed folder (.zip)"; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
+                    Text { textFormat: Text.PlainText; text: "󰛫"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
+                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: root.isPt ? "Pasta compactada (.zip)" : "Compressed folder (.zip)"; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
                 }
 
                 MouseArea {
@@ -1280,8 +1343,8 @@ Item {
                     anchors.leftMargin: 10
                     anchors.rightMargin: 10
                     spacing: 10
-                    Text { text: "󰅌"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
-                    Text { Layout.fillWidth: true; text: root.isPt ? "Área de transferência" : "Clipboard"; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
+                    Text { textFormat: Text.PlainText; text: "󰅌"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
+                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: root.isPt ? "Área de transferência" : "Clipboard"; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
                 }
 
                 MouseArea {

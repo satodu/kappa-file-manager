@@ -140,6 +140,7 @@ Item {
                     border.color: KappaTheme.sun
 
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: root.permanent ? "捨" : "河"
                         font.family: Tokens.jp
@@ -155,12 +156,14 @@ Item {
                     RowLayout {
                         spacing: 8
                         Text {
+                            textFormat: Text.PlainText
                             text: "//"
                             font.family: Tokens.mono
                             font.pixelSize: 11
                             color: KappaTheme.inkDim
                         }
                         Text {
+                            textFormat: Text.PlainText
                             text: root.permanent
                                   ? (root.isPt ? "EXCLUIR PERMANENTE_" : "DELETE PERMANENTLY_")
                                   : (root.isPt ? "LIXEIRA_" : "TRASH_")
@@ -173,6 +176,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: root.permanent
                               ? (root.isPt ? "Excluir permanentemente?" : "Delete permanently?")
                               : (root.isPt ? "Mover para a lixeira?" : "Move to trash?")
@@ -185,6 +189,7 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 Text {
+                    textFormat: Text.PlainText
                     text: "esc"
                     font.family: Tokens.mono
                     font.pixelSize: 11
@@ -194,6 +199,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 text: root.permanent
@@ -229,12 +235,14 @@ Item {
 
                             Item { Layout.preferredWidth: 2 }
                             Text {
+                                textFormat: Text.PlainText
                                 text: it.is_dir ? "▣" : "▤"
                                 font.family: Tokens.mono
                                 font.pixelSize: 13
                                 color: KappaTheme.sun
                             }
                             Text {
+                                textFormat: Text.PlainText
                                 Layout.fillWidth: true
                                 text: it.name
                                 elide: Text.ElideMiddle
@@ -243,6 +251,7 @@ Item {
                                 color: KappaTheme.ink
                             }
                             Text {
+                                textFormat: Text.PlainText
                                 text: it.is_dir ? (root.isPt ? "Pasta" : "Folder") : root.formatSize(it.size_bytes || 0)
                                 font.family: Tokens.mono
                                 font.pixelSize: 11
@@ -253,6 +262,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         visible: root.targets.length > 5
                         leftPadding: 16
                         height: 30
@@ -268,6 +278,7 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Text {
+                    textFormat: Text.PlainText
                     text: root.targets.length + (root.isPt ? (root.targets.length === 1 ? " item selecionado" : " itens selecionados") : (root.targets.length === 1 ? " item selected" : " items selected"))
                     font.family: Tokens.mono
                     font.pixelSize: 12
@@ -275,6 +286,7 @@ Item {
                 }
                 Item { Layout.fillWidth: true }
                 Text {
+                    textFormat: Text.PlainText
                     text: root.formatSize(root.totalBytes)
                     font.family: Tokens.mono
                     font.pixelSize: 12
@@ -297,6 +309,7 @@ Item {
                     border.color: KappaTheme.sun
 
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         visible: root.acknowledged
                         text: "✓"
@@ -310,6 +323,7 @@ Item {
                     }
                 }
                 Text {
+                    textFormat: Text.PlainText
                     text: root.isPt ? "Entendo que não é possível desfazer" : "I understand this cannot be undone"
                     font.family: Tokens.ui
                     font.pixelSize: 12
@@ -336,6 +350,7 @@ Item {
                 spacing: 8
 
                 Text {
+                    textFormat: Text.PlainText
                     visible: !root.permanent
                     text: root.isPt ? "Excluir permanentemente" : "Delete permanently"
                     font.family: Tokens.ui
@@ -353,6 +368,7 @@ Item {
                     }
                 }
                 Text {
+                    textFormat: Text.PlainText
                     visible: root.permanent
                     text: "Shift+Del"
                     font.family: Tokens.mono
@@ -371,6 +387,7 @@ Item {
                     border.color: KappaTheme.line
 
                     Text {
+                        textFormat: Text.PlainText
                         anchors.centerIn: parent
                         text: root.isPt ? "Cancelar" : "Cancel"
                         font.family: Tokens.ui
@@ -394,6 +411,7 @@ Item {
                     opacity: root.canConfirm ? 1.0 : 0.4
 
                     Text {
+                        textFormat: Text.PlainText
                         id: confirmLabel
                         anchors.centerIn: parent
                         text: root.permanent
