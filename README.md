@@ -1,121 +1,132 @@
-# ◩ Kappa File Manager (河)
+# Kappa File Manager (河)
 
-> Gerenciador de arquivos brutalista de alta performance feito **para** o ecossistema **Ryoku OS**, construído com **Rust** no backend e interface nativa em **QML / Quickshell**.
->
-> ⚠️ **Projeto independente da comunidade: o Kappa não é um app oficial do Ryoku** e não é mantido pelo time do Ryoku.
-> 
-> Inspirado na profundidade e robustez do **KDE Dolphin**, o Kappa pega as melhores funcionalidades do Dolphin (navegação transparente em dispositivos, KIO-Fuse, integração nativa com KDE Connect, lugares XDG e separação limpa de modelo) e as recria do zero com um motor ultrarrápido em **Rust 2024** e o design system brutalista oriental do Ryoku.
+A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
+
+> Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
+
+Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's best ideas (transparent device browsing, KIO-Fuse, KDE Connect integration, XDG places, a clean separation of model and view) and rebuilds them from scratch on a fast **Rust 2024** core, wearing the Ryoku design system.
 
 ---
 
-## 🖼️ Capturas de Tela
+## Screenshots
 
 | | |
 | :---: | :---: |
-| ![Lista](screenshots/01-list.png)<br>**Lista** | ![Grade com seleção múltipla](screenshots/02-grid-multiselect.png)<br>**Grade e seleção múltipla** |
-| ![Painel de detalhes](screenshots/03-details.png)<br>**Painel de detalhes** | ![Agrupar por tipo](screenshots/04-grouped-by-type.png)<br>**Agrupar por tipo** |
-| ![Menu ordenar](screenshots/05-sort-menu.png)<br>**Ordenar** | ![Menu de contexto](screenshots/06-context-menu.png)<br>**Menu de contexto** |
-| ![Split view](screenshots/07-split-view.png)<br>**Split view (F3)** | ![Barra de caminho](screenshots/13-path-bar.png)<br>**Barra de caminho editável com sugestões** |
-| ![Cópia em andamento](screenshots/11-copy-progress.png)<br>**Progresso de cópia** | ![Cópia concluída](screenshots/12-copy-done.png)<br>**Cópia concluída** |
-| ![Confirmar exclusão](screenshots/08-delete-confirm.png)<br>**Confirmação de exclusão** | ![Aparência](screenshots/09-appearance.png)<br>**Aparência** |
-| ![Tema fixo no Kappa](screenshots/10-appearance-fixed.png)<br>**Tema próprio do Kappa (esquema Fidelity)** | ![KDE Connect](screenshots/14-kde-connect.png)<br>**Dispositivo KDE Connect** |
+| ![List view](screenshots/01-list.png)<br>**List view** | ![Grid view with multi-selection](screenshots/02-grid-multiselect.png)<br>**Grid view and multi-selection** |
+| ![Details panel](screenshots/03-details.png)<br>**Details panel** | ![Grouped by type](screenshots/04-grouped-by-type.png)<br>**Grouped by type** |
+| ![Sort menu](screenshots/05-sort-menu.png)<br>**Sort menu** | ![Context menu](screenshots/06-context-menu.png)<br>**Context menu** |
+| ![Split view](screenshots/07-split-view.png)<br>**Split view (F3)** | ![Editable path bar](screenshots/13-path-bar.png)<br>**Editable path bar with suggestions** |
+| ![Copy in progress](screenshots/11-copy-progress.png)<br>**Copy in progress** | ![Copy finished](screenshots/12-copy-done.png)<br>**Copy finished** |
+| ![Delete confirmation](screenshots/08-delete-confirm.png)<br>**Delete confirmation** | ![Appearance](screenshots/09-appearance.png)<br>**Appearance** |
+| ![Kappa-only theme](screenshots/10-appearance-fixed.png)<br>**Kappa-only theme (Fidelity scheme)** | ![KDE Connect device](screenshots/14-kde-connect.png)<br>**KDE Connect device** |
 
 ---
 
-## ✨ Destaques do Projeto
+## Features
 
-- 🦀 **Núcleo em Rust Puro:** Varredura assíncrona ultra rápida, monitoramento inotify sem recarregar a tela, lixeira segura (FreeDesktop Trash spec) e cálculo dinâmico de metadados.
-- 🐬 **Evolução Espiritual do Dolphin em Rust:** Traz a força de acesso a sistemas remotos e dispositivos do KDE Dolphin através de integração nativa com `kio-fuse` e DBus, permitindo explorar sistemas de arquivos de smartphones e dispositivos remotos de forma transparente e em alta velocidade.
-- 🎨 **Linguagem Visual Ryoku ("Greek-noir yakuza"):** Cantos com o raio configurado no Ryoku, hairlines de 1px, sombras suaves, selo *Hanko* (*eki-stamp*) em vermillion, kanji **河** monumental ao fundo e marcas técnicas de calibração blueprint (+).
-- 📑 **Sistema Dinâmico de Abas:** Navegação limpa de janela única por padrão; a barra de abas surge suavemente com múltiplas abas (`Ctrl+T` e `Ctrl+W`).
-- 🔍 **Busca Inline Sem Modal:** Filtro ao vivo com debounce de 150ms, chips de categoria com contagem em tempo real e alternador de escopo (*Esta pasta* vs *Tudo*).
-- 🖱️ **Menu de Contexto Rico:** Suporte inteligente a tipos de arquivo, incluindo a seção **`// RYOTUNES_`** para tocar áudio no Ryotunes, abrir em nova aba, terminal integrado e compartilhamento direto com dispositivos pareados.
-- 🖼️ **Painel de Detalhes Lateral (Frame 155):** Drawer brutalista deslizante (`340px`) acionado por `Ctrl+I`, `Alt+Enter` ou menu de contexto, exibindo preview em alta resolução, metadados detalhados (MIME, permissões, local), paleta de cores para imagens e ação de definir wallpaper.
-- 🪟 **Divisão de Visualização (Split View - F3):** Modo lado a lado herdado da produtividade do Dolphin, permitindo visualizar duas pastas ou abas simultaneamente com navegação independente.
-- 📱 **Integração Real com KDE Connect & KIO-Fuse:** Detecção ao vivo de dispositivos emparelhados (ex: seu celular), navegação real por todas as pastas internas do celular (`DCIM`, `Download`, `Documents`, `Pictures`), envio de arquivos pelo menu de contexto (`--kde-share`), painel dedicado do dispositivo (Frame 425 com kanji **繋**), ping, ring, envio de clipboard e montagem de sistema de arquivos.
-- ☑️ **Seleção Múltipla:** `Ctrl+clique` alterna, `Shift+clique` e `Shift+setas` selecionam intervalos, `Ctrl+A` seleciona tudo; copiar, recortar, colar e excluir agem em todos os itens.
-- 📦 **Transferências com Progresso:** cópia e movimentação com cartão de progresso (velocidade, tempo restante, pausar e cancelar com `Esc`), inclusive para arquivos de vários GB.
-- 🛡️ **Exclusão com Confirmação:** `Del` abre um modal e envia para a lixeira; `Shift+Del` exclui permanentemente, com confirmação explícita.
-- 🧭 **Barra de Caminho Usual:** clique no espaço vazio ou `Ctrl+L` para digitar o caminho, com sugestões, `Tab` para completar e aviso de caminho inexistente.
-- 🎨 **Aparência Própria:** `Ctrl+,` permite seguir o tema do Ryoku ou fixar uma paleta só no Kappa (esquema, cor de origem e modo claro/escuro).
-- 🌐 **Internacionalização Nativa Ryoku:** Sincronização automática com as preferências de idioma do sistema (`~/.config/ryoku/shell.json` e `I18n.qml`), exibindo interface nativa em inglês ou português conforme configurado.
-
----
-
-## 🏛️ Arquitetura
-
-O Kappa divide-se em duas camadas desacopladas e resilientes:
-
-1. **`kappa-core` (Rust):**
-   - [`src/core/entry.rs`](src/core/entry.rs): Modelagem de arquivos, MIME types e formatação de datas/tamanhos com locale.
-   - [`src/core/path_resolver.rs`](src/core/path_resolver.rs): Validação rigorosa de caminhos (sugestão de pastas existentes, verificação de permissões polkit, links simbólicos órfãos e discos desconectados).
-   - [`src/core/search.rs`](src/core/search.rs): Motor de busca assíncrono com cancelamento instantâneo via `AtomicBool`.
-   - [`src/core/places.rs`](src/core/places.rs): Mapeamento de lugares padrão do sistema e pontos de montagem.
-
-2. **Interface Visual (QML / Quickshell):**
-   - Consome os tokens do sistema instalados em `/usr/lib/qt6/qml/Ryoku/` (`Tokens.qml`, `I18n.qml`).
-   - Vetores pixel art puros com `QtQuick.Shapes` ([`qml/PixelGlyphs.qml`](qml/PixelGlyphs.qml)).
-   - Cruzes técnicas de calibração em grade ([`qml/TechCrosses.qml`](qml/TechCrosses.qml)).
-   - Selo circular oriental ([`qml/HankoSeal.qml`](qml/HankoSeal.qml)).
+- **Pure Rust core:** fast asynchronous scanning, inotify watching without reloading the view, safe trash (FreeDesktop Trash spec) and on-the-fly metadata.
+- **Dolphin's spirit, in Rust:** access to remote systems and devices through `kio-fuse` and DBus, so a phone's file system can be browsed like a local folder.
+- **Ryoku visual language ("Greek-noir yakuza"):** corner radius taken from the Ryoku configuration, 1px hairlines, soft shadows, a vermillion *Hanko* (*eki-stamp*) seal, a monumental 河 kanji in the background and blueprint registration marks (+).
+- **Tabs:** a clean single-window view by default; the tab bar slides in when there is more than one tab (`Ctrl+T`, `Ctrl+W`).
+- **Split view (`F3`):** two folders side by side with independent navigation and a draggable divider.
+- **Inline search:** live filtering with a 150 ms debounce, category chips with live counts and a scope switch (*This folder* or *Everything*).
+- **Multi-selection:** `Ctrl+click` toggles, `Shift+click` and `Shift+arrows` select ranges, `Ctrl+A` selects everything. Copy, cut, paste and delete act on every selected item.
+- **Transfers with progress:** copy and move show a progress card with speed and time remaining, can be paused, and can be cancelled with `Esc`, including for multi-gigabyte files.
+- **Safe deletion:** `Del` opens a confirmation and moves items to the trash; `Shift+Del` deletes permanently after an explicit confirmation.
+- **Usable path bar:** click an empty area or press `Ctrl+L` to type a path, with suggestions, `Tab` completion and a clear message for paths that do not exist.
+- **Sorting and grouping:** sort by name, type, date or size (ascending or descending) and group by type with live section counts.
+- **Details panel:** a sliding drawer (`Ctrl+I`) with a large preview, MIME type, location and a color palette for images, plus a "set as wallpaper" action.
+- **Own appearance:** `Ctrl+,` lets Kappa follow the Ryoku theme or use its own palette (scheme, seed color and light/dark mode) without changing the rest of the desktop.
+- **KDE Connect and KIO-Fuse:** live detection of paired devices, browsing of the phone's folders, sending files from the context menu, ping, ring, clipboard sharing and mounting.
+- **Ryoku internationalization:** follows the system language from `~/.config/ryoku/shell.json` (English or Portuguese).
 
 ---
 
-## 🚀 Como Executar
+## Architecture
 
-### Pré-requisitos
-- **Rust & Cargo** (edição 2024+)
-- **Qt 6 & Quickshell** (instalado no Ryoku OS)
+Kappa has two decoupled layers.
 
-### Inicialização Rápida
+1. **Rust core (`src/`):**
+   - [`src/core/entry.rs`](src/core/entry.rs): file model, MIME types and locale-aware date and size formatting.
+   - [`src/core/path_resolver.rs`](src/core/path_resolver.rs): path validation (suggestions for existing folders, permission checks, broken symlinks and disconnected disks) and autocomplete.
+   - [`src/core/search.rs`](src/core/search.rs): asynchronous search engine with instant cancellation through an `AtomicBool`.
+   - [`src/core/places.rs`](src/core/places.rs): default system places, mounted devices and KDE Connect devices.
+   - [`src/ops/file_ops.rs`](src/ops/file_ops.rs): open, trash, permanent delete, rename and folder creation.
+   - [`src/ops/transfer.rs`](src/ops/transfer.rs): batch copy and move that emits JSON progress events.
 
-Basta executar o script de inicialização na raiz do projeto:
+2. **Interface (`qml/`, QML / Quickshell):**
+   - Consumes the system tokens installed under `/usr/lib/qt6/qml/Ryoku/` (`Tokens.qml`, `I18n.qml`).
+   - [`qml/KappaTheme.qml`](qml/KappaTheme.qml) wraps those tokens so Kappa can follow the Ryoku theme or use its own palette.
+   - Pixel-art vectors with `QtQuick.Shapes` ([`qml/PixelGlyphs.qml`](qml/PixelGlyphs.qml)), registration-cross grid ([`qml/TechCrosses.qml`](qml/TechCrosses.qml)) and the oriental seal ([`qml/HankoSeal.qml`](qml/HankoSeal.qml)).
+
+The interface talks to the backend through a small command-line interface that prints JSON, read with `Quickshell.Io.Process`.
+
+---
+
+## Getting Started
+
+### Requirements
+
+- **Rust and Cargo** (edition 2024)
+- **Qt 6 and Quickshell** (included with Ryoku OS)
+- Optional: `kdeconnect-cli` and `kio-fuse` for phone integration, `matugen` for the Kappa-only theme
+
+### Run
 
 ```bash
-git clone https://github.com/.../kappa-file-manager.git
+git clone https://github.com/satodu/kappa-file-manager.git
 cd kappa-file-manager
 ./run.sh
 ```
 
-Ou diretamente via Cargo:
+Or build the backend and start Quickshell yourself:
+
 ```bash
-cargo run
+cargo build
+quickshell -p qml/shell.qml
 ```
 
+For testing, `KAPPA_START=<folder>` sets the starting folder and `KAPPA_VIEW=list|grid` sets the initial view.
+
+### Known limitations (alpha)
+
+- `qml/App.qml` currently points at the backend binary with an absolute path (`backendBin`), so it must be edited when the project lives somewhere else.
+- The battery, network and storage figures on the KDE Connect device screen are placeholder values taken from the design; actions such as ping and ring call the real `kdeconnect-cli`.
+
 ---
 
-## ⌨️ Atalhos de Teclado
+## Keyboard Shortcuts
 
-| Atalho | Ação |
+| Shortcut | Action |
 | :--- | :--- |
-| `Ctrl+T` | Abrir nova aba na pasta atual |
-| `Ctrl+W` | Fechar aba ativa (ou clique com o botão do meio na aba) |
-| `/` ou `Ctrl+F` | Focar na busca inline |
-| `Esc` | Limpar busca / fechar menus e modais / cancelar transferência |
-| `Enter` | Abrir pasta ou arquivo no aplicativo padrão |
-| `Del` / `Shift+Del` | Mover para a lixeira (com confirmação) / excluir permanentemente |
-| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copiar / recortar / colar |
-| `Ctrl+A` | Selecionar tudo |
-| `F2` | Renomear |
-| `F7` ou `Ctrl+Shift+N` | Nova pasta (já abre para renomear) |
-| `Ctrl+L` ou `Alt+D` | Editar o caminho |
-| `Ctrl+,` | Abrir Aparência |
-| `F3` | Dividir visualização (Split View em dois painéis/abas) |
-| `Ctrl+I` ou `Alt+Enter` | Alternar Painel de Detalhes (Frame 155) |
+| `Ctrl+T` | Open a new tab in the current folder |
+| `Ctrl+W` | Close the active tab |
+| `Ctrl+F` | Focus the inline search |
+| `Ctrl+L` or `Alt+D` | Edit the path |
+| `Esc` | Clear search, close menus and dialogs, cancel a transfer |
+| `Enter` | Open the selected folder or file with the default application |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste |
+| `Ctrl+A` | Select everything |
+| `Del` / `Shift+Del` | Move to trash (with confirmation) / delete permanently |
+| `F2` | Rename |
+| `F7` or `Ctrl+Shift+N` | New folder (opens ready to rename) |
+| `F3` | Split view |
+| `Ctrl+I` or `Alt+Enter` | Toggle the details panel |
+| `Ctrl+H` | Show or hide hidden files |
+| `Ctrl+,` | Open Appearance |
 
 ---
 
-## 🎨 Design System e Customização Ryoku
+## Design System and Customization
 
-- **Arredondamento Dinâmico:** Todos os componentes do Kappa adaptam seu `radius` reativamente ao valor configurado no **Ryoku OS** (`~/.config/ryoku/shell.json` `theme.attributes.sizing.radius_widget` e singleton `Tokens.radius`).
-- **Menu de Ordenação e Agrupamento (Nós 51, 2707, 2866, 2710):**
-  - Botão **Ordenar** na Toolbar abrindo o overlay com ordenação por **Nome**, **Tipo**, **Data** e **Tamanho**, em ordem **Crescente** (`A→Z`) ou **Decrescente** (`Z→A`).
-  - Cabeçalhos de colunas interativos com setas e rótulo contextual (ex: `NOME · TIPO ↑`).
-  - Botão **Agrupar por Tipo** com seções brutalistas (`PASTAS_`, `IMAGENS_`, `DOCUMENTOS_`, `ÁUDIO_`, `VÍDEOS_`, `CÓDIGO_`, `OUTROS_`), contagem ao vivo e placa `07 // TIPOS` na Titlebar.
-- **Menu de Contexto Completo:** Alinhado 100% aos nós 616, 665 e 1380 do Figcraft, com submenu para envio a celulares via KDE Connect, pen drives, zip e clipboard, além de layout e atalhos dedicados para faixas de áudio integradas ao Ryotunes.
+- **Dynamic corner radius:** every component follows the radius configured in Ryoku (`~/.config/ryoku/shell.json`, `theme.attributes.sizing.radius_widget`, falling back to `Tokens.radius`).
+- **Appearance:** Kappa follows the Ryoku theme by default. In **Fixed in Kappa** mode it generates its own Material palette with `matugen` (scheme, seed color, light or dark) and stores it in `~/.config/kappa/theme.json`.
+- **Sorting and grouping:** the **Sort** button opens a menu to sort by **Name**, **Type**, **Date** or **Size**, ascending or descending; column headers are clickable. **Group by type** creates sections (`FOLDERS_`, `IMAGES_`, `DOCUMENTS_`, `AUDIO_`, `VIDEOS_`, `CODE_`, `OTHER_`) with live counts.
+- **Context menu:** open, open in a new tab, open a terminal here, cut, copy, paste, send to (KDE Connect devices, USB drives, zip, clipboard), rename, trash and properties, plus a dedicated section for audio tracks that plays them in Ryotunes.
 
 ---
 
-## 📄 Licença e Design
+## Design and Credits
 
-- Design original criado no **FigCraft** em [`design/kappa-file-manager.figcraft`](design/kappa-file-manager.figcraft).
-- Alinhado às diretrizes e identidade visual do **Ryoku**, sem ser um projeto oficial dele.
+- The original design was created in **FigCraft** and lives in [`design/kappa-file-manager.figcraft`](design/kappa-file-manager.figcraft).
+- Kappa follows the visual identity and guidelines of **Ryoku** but is an independent project and is not officially affiliated with it.
