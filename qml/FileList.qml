@@ -69,6 +69,31 @@ Item {
         if (ext) return ext;
         return root.isPt ? "Arquivo" : "File";
     }
+    // Arrastar para outra janela (terminal, chat, editor...): envia a localização dos itens.
+    // O que sai é só o caminho dos itens que você arrastou; o Kappa NÃO aceita soltar nada aqui.
+    function dragPaths(item) {
+        if (selectedSet[item.path] !== true) return [item.path];
+        var out = [];
+        for (var i = 0; i < entries.length; i++) {
+            if (selectedSet[entries[i].path] === true) out.push(entries[i].path);
+        }
+        return out.length > 0 ? out : [item.path];
+    }
+
+    // Só `text/uri-list` (URIs file:// com cada trecho codificado): é o que gerenciadores de arquivos comuns enviam.
+    // Terminais colam o caminho, chats e navegadores anexam o arquivo. Não se envia `text/plain` ao mesmo tempo:
+    // alguns programas aceitam os dois e colariam o caminho duas vezes; além disso, um nome com quebra de linha
+    // em texto puro viraria comando ao soltar num terminal, e a URI codificada não tem esse problema.
+    function dragMime(item) {
+        var uris = [];
+        var paths = dragPaths(item);
+        for (var i = 0; i < paths.length; i++) {
+            var u = KappaSafe.fileUrl(paths[i]);
+            if (u !== "") uris.push(u);
+        }
+        return ({ "text/uri-list": uris.join("\r\n") + "\r\n" });
+    }
+
     signal itemActivated(var item)
     signal itemClicked(var item, int modifiers)
     signal backgroundClicked()
@@ -396,6 +421,19 @@ Item {
                 return rowMouse.containsMouse ? KappaTheme.tint5 : "transparent";
             }
 
+            Drag.dragType: Drag.Automatic
+            Drag.supportedActions: Qt.CopyAction
+            Drag.proposedAction: Qt.CopyAction
+            Drag.mimeData: root.dragMime(modelData)
+            Drag.active: rowDrag.active
+            DragHandler {
+                id: rowDrag
+                target: null
+                acceptedButtons: Qt.LeftButton
+                dragThreshold: 10
+                onActiveChanged: if (active && root.selectedSet[modelData.path] !== true) root.itemClicked(modelData, 0)
+            }
+
             // Marcador de seleção: barra de 2px na lateral (seleções contíguas se fundem)
             Rectangle {
                 anchors.left: parent.left
@@ -579,6 +617,19 @@ Item {
             color: {
                 if (isSelected) return KappaTheme.tint10;
                 return gridMouse.containsMouse ? KappaTheme.tint10 : KappaTheme.tint5;
+            }
+
+            Drag.dragType: Drag.Automatic
+            Drag.supportedActions: Qt.CopyAction
+            Drag.proposedAction: Qt.CopyAction
+            Drag.mimeData: root.dragMime(modelData)
+            Drag.active: gridDrag.active
+            DragHandler {
+                id: gridDrag
+                target: null
+                acceptedButtons: Qt.LeftButton
+                dragThreshold: 10
+                onActiveChanged: if (active && root.selectedSet[modelData.path] !== true) root.itemClicked(modelData, 0)
             }
             border.width: 1
             border.color: {

@@ -37,6 +37,7 @@ Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's b
 - **Multi-selection:** `Ctrl+click` toggles, `Shift+click` and `Shift+arrows` select ranges, `Ctrl+A` selects everything. Copy, cut, paste and delete act on every selected item.
 - **Transfers with progress:** copy and move show a progress card with speed and time remaining, can be paused, and can be cancelled with `Esc`, including for multi-gigabyte files.
 - **Compress and extract:** the context menu compresses the selection to `.zip` or `.tar.gz` and extracts `.zip`, `.tar`, `.tar.gz` and `.tgz` into a new folder, with the same progress card. Extraction is hardened against zip-slip, hostile links and decompression bombs (see [SECURITY.md](SECURITY.md)).
+- **Drag out:** drag a file (or a multi-selection) from Kappa into a terminal, chat or editor to hand over its location.
 - **Safe opening:** opening a script, program or `.desktop` launcher asks for confirmation first, judged by the file content and not only its name.
 - **Safe deletion:** `Del` opens a confirmation and moves items to the trash; `Shift+Del` deletes permanently after an explicit confirmation.
 - **Usable path bar:** click an empty area or press `Ctrl+L` to type a path, with suggestions, `Tab` completion and a clear message for paths that do not exist. In narrow windows the first levels fold into a `…` menu.

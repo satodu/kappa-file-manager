@@ -56,7 +56,7 @@ Kappa is a file manager, so it handles untrusted names, links, paths and archive
 - Error messages shown in the app are not logged by Kappa itself. Qt/Quickshell warnings go to a log under `/run/user/<uid>/` (RAM, readable only by you).
 
 **Drag and drop, clipboard and URIs**
-- Kappa does not accept drops and does not start drags, so a dropped payload cannot reach it. Between applications it only uses the clipboard, and pasted text counts as files only when it is a list of `file://` URIs.
+- You can drag files out of Kappa into another window (a terminal, a chat, an editor). Only the location of the items you dragged leaves, as a `text/uri-list` of percent-encoded `file://` URIs: no plain-text copy, so a file name containing a newline can never turn into a command when dropped on a terminal. Kappa does not accept drops, so a payload dragged from elsewhere cannot reach it. Besides that it only uses the clipboard, and pasted text counts as files only when it is a list of `file://` URIs.
 - Kappa works with plain filesystem paths only. It does not parse `trash://`, `recent://`, `smb://` or percent-encoded paths (`%2e%2e` stays a literal name), so such URIs cannot redirect navigation. File URLs shown in the interface are built with every path segment percent-encoded. `~` is the only expansion.
 
 **D-Bus and privileged actions**

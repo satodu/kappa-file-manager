@@ -150,6 +150,7 @@ kappa-file-manager/
    - **Transferência (`--transfer <copy|move> <destino> <origens...>`):** emite JSON por linha (`start`, `progress`, `done`, `error`) lido pelo `SplitParser` em `App.qml` e mostrado no `TransferCard`. `Esc` cancela (SIGTERM e remove o arquivo parcial); Pausar usa SIGSTOP/SIGCONT. Ao concluir, os itens colados ficam selecionados.
    - **Nova pasta** (`F7`/`Ctrl+Shift+N`): cria a pasta e abre o `RenameModal` já nela (`pendingRenamePath`).
    - **Localização:** `Ctrl+Shift+C` (e "Copiar localização" no menu) copia o caminho em texto via `app.copyPath()`. Enquanto o campo de caminho está em edição (`app.anyPathEditing`), os atalhos de arquivos ficam desligados para `Ctrl+C/V/A` valerem para o texto. Os níveis da barra de caminho que não cabem viram o menu `…` (`Toolbar.relayoutCrumbs`).
+   - **Arrastar para fora:** `FileList.dragMime()` envia só `text/uri-list` (URIs `file://` codificadas) via `Drag.Automatic`; não mande `text/plain` junto (duplica em terminais e abre brecha com quebras de linha). O Kappa não aceita drops (`DropArea`).
    - Variáveis de ambiente de teste: `KAPPA_START=<dir>`, `KAPPA_VIEW=list|grid`.
 
 15. **Compactar e extrair (0.1.1-beta) e regras de segurança:**
