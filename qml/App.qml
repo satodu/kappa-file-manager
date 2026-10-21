@@ -17,7 +17,8 @@ Rectangle {
     }
 
     readonly property string homeDir: Quickshell.env("HOME") || "/"
-    property string currentPath: Quickshell.env("KAPPA_START") || app.homeDir
+    property string currentPath: Quickshell.env("KAPPA_START") || app.restoredPath() || app.homeDir
+    property bool restoringPath: !Quickshell.env("KAPPA_START") && app.currentPath !== app.homeDir
     property var currentEntries: []
     property var folderEntries: []
     property var rawEntries: []
@@ -79,17 +80,22 @@ Rectangle {
     property string statusNotice: ""
     Timer { id: noticeTimer; interval: 2200; onTriggered: app.statusNotice = "" }
 
+    // Copia texto puro para a área de transferência e mostra o toast
+    function copyText(text, message) {
+        Quickshell.clipboardText = text;
+        app.statusNotice = message;
+        noticeTimer.restart();
+    }
+
     // Copia a localização (caminho) dos itens selecionados; sem seleção, a da pasta atual
     function copyPath(item) {
         var targets = app.targetsFor(item);
         var paths = targets.length > 0
             ? targets.map(function(t) { return t.path; })
             : [(app.isSplit && app.activePane === "right") ? app.rightPath : app.currentPath];
-        Quickshell.clipboardText = paths.join("\n");
-        app.statusNotice = paths.length > 1
+        app.copyText(paths.join("\n"), paths.length > 1
             ? (app.isPt ? paths.length + " localizações copiadas" : paths.length + " locations copied")
-            : (app.isPt ? "Localização copiada" : "Location copied");
-        noticeTimer.restart();
+            : (app.isPt ? "Localização copiada" : "Location copied"));
     }
 
     // Modal de confirmação de exclusão (Delete / Shift+Delete)
@@ -142,9 +148,96 @@ Rectangle {
         return Tokens.radius;
     }
 
+    // Última pasta aberta: ~/.config/kappa/state.json {"last_path": "/..."}.
+    // Só guarda a pasta atual (sem histórico). KAPPA_START desliga restaurar e gravar.
+    readonly property string stateDir: (Quickshell.env("XDG_CONFIG_HOME") || (app.homeDir + "/.config")) + "/kappa"
+    FileView {
+        id: stateFile
+        path: app.stateDir + "/state.json"
+        blockLoading: true
+        printErrors: false
+    }
+    Process {
+        id: stateMkdirProc
+        command: ["mkdir", "-p", "-m", "700", app.stateDir]
+    }
+    function restoredPath() {
+        if (Quickshell.env("KAPPA_START")) return "";
+        try {
+            var p = JSON.parse(stateFile.text()).last_path;
+            // Só caminho absoluto simples; o backend ainda valida ao listar
+            if (typeof p === "string" && p.length > 0 && p.length < 4096 && p.charAt(0) === "/" && !/[\u0000-\u001f\u007f]/.test(p))
+                return p;
+        } catch (e) {}
+        return "";
+    }
+    function saveLastPath(path) {
+        if (Quickshell.env("KAPPA_START")) return;
+        stateMkdirProc.running = true;
+        stateFile.setText(JSON.stringify({ last_path: path }) + "\n");
+    }
+
+    // Atalhos fixados em Lugares (arrastando pastas do Kappa para a barra lateral).
+    // ~/.config/kappa/places.json {"pins":[{"path","label","kanji"}]}. Só aceita arrasto interno:
+    // quem define a origem é o próprio FileList (draggingFolders), nunca o conteúdo de um drop externo.
+    readonly property var pinKanji: ["河","山","川","海","森","林","空","星","月","日","火","水","木","金","土","風","雲","花","桜","竜","虎","鳥","魚","道","門","光","影","夢","和","心","力","石","雪","雨","鶴","狐","波","岩","谷","島"]
+    readonly property int maxPins: 32
+    property var draggingFolders: []
+    property var pinnedPlaces: app.loadPins()
+    FileView {
+        id: pinsFile
+        path: app.stateDir + "/places.json"
+        blockLoading: true
+        printErrors: false
+    }
+    function loadPins() {
+        var out = [];
+        try {
+            var pins = JSON.parse(pinsFile.text()).pins;
+            for (var i = 0; i < pins.length && out.length < app.maxPins; i++) {
+                var q = pins[i];
+                if (typeof q.path !== "string" || q.path.charAt(0) !== "/" || q.path.length > 4096 || /[\u0000-\u001f\u007f]/.test(q.path)) continue;
+                if (app.pinKanji.indexOf(q.kanji) < 0) continue;
+                out.push({ path: q.path, label: typeof q.label === "string" ? q.label.substring(0, 120) : q.path, kanji: q.kanji });
+            }
+        } catch (e) {}
+        return out;
+    }
+    function savePins() {
+        stateMkdirProc.running = true;
+        pinsFile.setText(JSON.stringify({ pins: app.pinnedPlaces }, null, 2) + "\n");
+    }
+    function pinPlaces(paths) {
+        var pins = app.pinnedPlaces.slice();
+        var added = 0;
+        for (var i = 0; i < paths.length; i++) {
+            var path = paths[i];
+            if (pins.length >= app.maxPins) break;
+            var dup = pins.some(function(x) { return x.path === path; })
+                || app.placesList.some(function(x) { return x.path === path; });
+            if (dup) continue;
+            // Kanji aleatório, evitando repetir os que já estão em uso enquanto houver sobra
+            var used = pins.map(function(x) { return x.kanji; });
+            var free = app.pinKanji.filter(function(k) { return used.indexOf(k) < 0; });
+            var pool = free.length > 0 ? free : app.pinKanji;
+            var parts = path.split("/").filter(function(x) { return x.length > 0; });
+            pins.push({ path: path, label: parts.length > 0 ? parts[parts.length - 1] : "/", kanji: pool[Math.floor(Math.random() * pool.length)] });
+            added++;
+        }
+        if (added === 0) return;
+        app.pinnedPlaces = pins;
+        app.savePins();
+        app.statusNotice = app.isPt ? "Atalho criado em Lugares" : "Shortcut added to Places";
+        noticeTimer.restart();
+    }
+    function unpinPlace(path) {
+        app.pinnedPlaces = app.pinnedPlaces.filter(function(x) { return x.path !== path; });
+        app.savePins();
+    }
+
     // Gerenciador de Abas (inicia com 1 aba, e a barra só surge com > 1 aba)
     property var tabs: [
-        { id: 0, title: "Home", path: Quickshell.env("KAPPA_START") || (Quickshell.env("HOME") || "/") }
+        { id: 0, title: "Home", path: app.currentPath }
     ]
     property int activeTabIndex: 0
 
@@ -197,6 +290,8 @@ Rectangle {
                     var data = JSON.parse(this.text);
                     if (data.ok) {
                         app.currentPath = data.path;
+                        app.restoringPath = false;
+                        app.saveLastPath(data.path);
                         app.folderEntries = data.entries || [];
                         app.rawEntries = (data.entries || []).slice();
                         app.filterAndDisplayEntries();
@@ -220,6 +315,10 @@ Rectangle {
                             }
                         }
                         app.tabs = updated;
+                    } else if (app.restoringPath) {
+                        // Última pasta sumiu ou ficou inacessível: volta para a home sem alarde
+                        app.restoringPath = false;
+                        app.loadFolder(app.homeDir);
                     } else {
                         app.errorMessage = data.error || (app.isPt ? "Erro ao acessar caminho" : "Error accessing path");
                     }
@@ -1628,6 +1727,10 @@ Rectangle {
                 Layout.fillHeight: true
                 currentPath: app.currentPath
                 placesList: app.placesList
+                pinnedList: app.pinnedPlaces
+                canPin: app.draggingFolders.length > 0
+                onPinDropped: app.pinPlaces(app.draggingFolders)
+                onUnpinRequested: function(p) { app.unpinPlace(p); }
                 devicesList: app.devicesList
                 onNavigateRequested: function(p) {
                     if (app.isSplit && app.activePane === "right") {
@@ -2043,6 +2146,9 @@ Rectangle {
                 onOpenRequested: function(item) {
                     app.openItem(item);
                 }
+                onCopyRequested: function(text, message) {
+                    app.copyText(text, message);
+                }
                 onSetWallpaperRequested: function(wallPath) {
                     actionProc.command = ["swww", "img", wallPath];
                     actionProc.running = true;
@@ -2066,7 +2172,6 @@ Rectangle {
             transferState: app.transferState
             transferFraction: app.transferFraction
             transferMode: app.transferMode
-            notice: app.statusNotice
             onThemeClicked: app.openAppearance()
         }
     }
@@ -2232,6 +2337,34 @@ Rectangle {
             app.showRenameModal = false;
             app.renameTargetItem = null;
             app.forceActiveFocus();
+        }
+    }
+
+    // Toast rápido (aviso de cópia)
+    Rectangle {
+        id: toast
+        z: 130
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: app.statusNotice !== "" ? 56 : 40
+        implicitWidth: toastText.implicitWidth + 32
+        implicitHeight: 36
+        radius: app.systemRadius
+        color: KappaTheme.paperLift
+        border.width: 1
+        border.color: KappaTheme.sun
+        opacity: app.statusNotice !== "" ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+        Behavior on anchors.bottomMargin { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+        Text {
+            id: toastText
+            anchors.centerIn: parent
+            textFormat: Text.PlainText
+            text: app.statusNotice
+            font.family: Tokens.ui
+            font.pixelSize: 12
+            color: KappaTheme.ink
         }
     }
 }

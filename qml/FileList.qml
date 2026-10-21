@@ -80,6 +80,21 @@ Item {
         return out.length > 0 ? out : [item.path];
     }
 
+    // Pastas do que está sendo arrastado: o Kappa só as usa para fixar em Lugares (arrasto interno, nunca drop externo)
+    function dragFolders(item) {
+        var out = [];
+        var paths = dragPaths(item);
+        for (var i = 0; i < paths.length; i++) {
+            for (var j = 0; j < entries.length; j++) {
+                if (entries[j].path === paths[i] && entries[j].is_dir) { out.push(paths[i]); break; }
+            }
+        }
+        return out;
+    }
+    function setDraggingFolders(list) {
+        if (typeof app !== "undefined" && app) app.draggingFolders = list;
+    }
+
     // Só `text/uri-list` (URIs file:// com cada trecho codificado): é o que gerenciadores de arquivos comuns enviam.
     // Terminais colam o caminho, chats e navegadores anexam o arquivo. Não se envia `text/plain` ao mesmo tempo:
     // alguns programas aceitam os dois e colariam o caminho duas vezes; além disso, um nome com quebra de linha
@@ -426,6 +441,8 @@ Item {
             Drag.proposedAction: Qt.CopyAction
             Drag.mimeData: root.dragMime(modelData)
             Drag.active: rowDrag.active
+            Drag.onDragStarted: root.setDraggingFolders(root.dragFolders(modelData))
+            Drag.onDragFinished: root.setDraggingFolders([])
             DragHandler {
                 id: rowDrag
                 target: null
@@ -624,6 +641,8 @@ Item {
             Drag.proposedAction: Qt.CopyAction
             Drag.mimeData: root.dragMime(modelData)
             Drag.active: gridDrag.active
+            Drag.onDragStarted: root.setDraggingFolders(root.dragFolders(modelData))
+            Drag.onDragFinished: root.setDraggingFolders([])
             DragHandler {
                 id: gridDrag
                 target: null

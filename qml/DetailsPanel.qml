@@ -13,9 +13,42 @@ Rectangle {
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
 
+    property var paletteColors: []
+
+    // Quantiza em 4 bits por canal, conta e escolhe as mais frequentes que se distinguem entre si
+    function dominantColors(data, count) {
+        var buckets = {};
+        for (var i = 0; i < data.length; i += 4) {
+            if (data[i + 3] < 128) continue;
+            var key = ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4);
+            var b = buckets[key];
+            if (b) { b.n++; b.r += data[i]; b.g += data[i + 1]; b.b += data[i + 2]; }
+            else buckets[key] = { n: 1, r: data[i], g: data[i + 1], b: data[i + 2] };
+        }
+        var list = [];
+        for (var k in buckets) {
+            var e = buckets[k];
+            list.push({ n: e.n, r: Math.round(e.r / e.n), g: Math.round(e.g / e.n), b: Math.round(e.b / e.n) });
+        }
+        list.sort(function(a, b) { return b.n - a.n; });
+        var out = [];
+        for (var j = 0; j < list.length && out.length < count; j++) {
+            var c = list[j], far = true;
+            for (var m = 0; m < out.length; m++) {
+                var d = Math.abs(c.r - out[m].r) + Math.abs(c.g - out[m].g) + Math.abs(c.b - out[m].b);
+                if (d < 60) { far = false; break; }
+            }
+            if (far) out.push(c);
+        }
+        return out.map(function(c) {
+            return "#" + [c.r, c.g, c.b].map(function(v) { return (v < 16 ? "0" : "") + v.toString(16); }).join("");
+        });
+    }
+
     signal openRequested(var item)
     signal setWallpaperRequested(string path)
     signal closeRequested()
+    signal copyRequested(string text, string message)
 
     // Borda vertical esquerda divisória (Nó 560)
     Rectangle {
@@ -24,6 +57,29 @@ Rectangle {
         anchors.bottom: parent.bottom
         width: 1
         color: KappaTheme.line
+    }
+
+    // Lê pixels de uma cópia 48x48 da prévia; nada é gravado nem enviado
+    Canvas {
+        id: paletteCanvas
+        width: 48
+        height: 48
+        opacity: 0
+        x: -100
+        property string src: previewImg.status === Image.Ready ? previewImg.source.toString() : ""
+        onSrcChanged: {
+            root.paletteColors = [];
+            if (src !== "") loadImage(src);
+        }
+        onImageLoaded: requestPaint()
+        onPaint: {
+            if (src === "" || !isImageLoaded(src)) return;
+            var ctx = getContext("2d");
+            ctx.clearRect(0, 0, 48, 48);
+            ctx.drawImage(src, 0, 0, 48, 48);
+            root.paletteColors = root.dominantColors(ctx.getImageData(0, 0, 48, 48).data, 6);
+            unloadImage(src);
+        }
     }
 
     ColumnLayout {
@@ -279,7 +335,22 @@ Rectangle {
                 Layout.fillWidth: true
                 height: 22
                 Text { textFormat: Text.PlainText; text: root.isPt ? "LOCAL" : "LOCATION"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkFaint; Layout.preferredWidth: 90 }
-                Text { textFormat: Text.PlainText; text: root.fileItem ? root.fileItem.path : "—"; font.family: Tokens.ui; font.pixelSize: 12; color: KappaTheme.ink; Layout.fillWidth: true; elide: Text.ElideMiddle }
+                Text {
+                    textFormat: Text.PlainText
+                    text: root.fileItem ? root.fileItem.path : "—"
+                    font.family: Tokens.ui; font.pixelSize: 12
+                    color: pathMouse.containsMouse ? KappaTheme.sun : KappaTheme.ink
+                    Layout.fillWidth: true
+                    elide: Text.ElideMiddle
+                    MouseArea {
+                        id: pathMouse
+                        anchors.fill: parent
+                        enabled: root.fileItem !== null
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.copyRequested(root.fileItem.path, root.isPt ? "Localização copiada" : "Location copied")
+                    }
+                }
             }
         }
 
@@ -287,7 +358,7 @@ Rectangle {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 8
-            visible: root.fileItem && root.fileItem.kind === "image"
+            visible: root.fileItem && root.fileItem.kind === "image" && root.paletteColors.length > 0
 
             RowLayout {
                 Layout.fillWidth: true
@@ -303,13 +374,13 @@ Rectangle {
                 }
             }
 
-            // Amostras de Cor Brutalistas (Nós 604 a 609: 6 amostras)
+            // Amostras: cores dominantes da própria prévia (já limitada por KappaSafe.previewUrl)
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 6
 
                 Repeater {
-                    model: ["#141413", "#2a2927", "#444340", "#e2342a", "#8c8a85", "#dedad2"]
+                    model: root.paletteColors
                     delegate: Rectangle {
                         required property string modelData
                         Layout.fillWidth: true
@@ -317,7 +388,14 @@ Rectangle {
                         radius: root.effectiveRadius
                         color: modelData
                         border.width: 1
-                        border.color: KappaTheme.line
+                        border.color: swatchMouse.containsMouse ? KappaTheme.sun : KappaTheme.line
+                        MouseArea {
+                            id: swatchMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.copyRequested(modelData.toUpperCase(), (root.isPt ? "Cor copiada: " : "Color copied: ") + modelData.toUpperCase())
+                        }
                     }
                 }
             }

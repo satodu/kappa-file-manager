@@ -231,6 +231,8 @@ Rectangle {
             Layout.minimumWidth: 120
             height: 32
             clip: !root.isEditingPath
+            // Em edição a caixa passa por cima dos botões vizinhos, para o campo e as sugestões não ficarem espremidos
+            z: root.isEditingPath ? 50 : 0
             onWidthChanged: relayoutTimer.restart()
 
             // Níveis ocultos: clicar navega até ele
@@ -377,7 +379,10 @@ Rectangle {
             // Modo Edição Direta de Caminho (Kappa / Caminho editável)
             Rectangle {
                 id: editBox
-                anchors.fill: parent
+                x: 0
+                y: 0
+                height: parent.height
+                width: parent.width >= 420 ? parent.width : Math.max(parent.width, Math.min(720, root.width - pathBar.mapToItem(root, 0, 0).x - 16))
                 visible: root.isEditingPath
                 radius: root.effectiveRadius
                 color: KappaTheme.paperLift

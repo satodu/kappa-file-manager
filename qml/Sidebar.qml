@@ -10,6 +10,10 @@ Rectangle {
     property string currentPath: ""
     property var placesList: []
     property var devicesList: []
+    property var pinnedList: []
+    property bool canPin: false
+    signal pinDropped()
+    signal unpinRequested(string path)
     signal navigateRequested(string path)
     signal kdeDeviceClicked(var device)
     signal deviceMountRequested(var device)
@@ -19,6 +23,18 @@ Rectangle {
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
 
     PixelGlyphs { id: glyphs }
+
+    // Só reage a arrasto que nasceu no Kappa (canPin); o que for solto vindo de fora é ignorado
+    DropArea {
+        id: pinDrop
+        anchors.fill: parent
+        keys: ["text/uri-list"]
+        onEntered: function(drag) { drag.accepted = root.canPin; }
+        onDropped: function(drop) {
+            if (root.canPin) { drop.accept(Qt.CopyAction); root.pinDropped(); }
+            else drop.accepted = false;
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -131,6 +147,83 @@ Rectangle {
                 MouseArea {
                     id: itemMouse
                     anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.navigateRequested(modelData.path);
+                        if (typeof app !== "undefined" && app) app.forceActiveFocus();
+                    }
+                }
+            }
+        }
+
+        // 2b. Atalhos fixados pelo usuário (kanji aleatório no lugar do ícone)
+        Repeater {
+            model: root.pinnedList
+
+            delegate: Rectangle {
+                id: pinItem
+                required property var modelData
+                Layout.fillWidth: true
+                Layout.preferredHeight: 36
+                radius: root.effectiveRadius
+                color: root.currentPath === modelData.path ? KappaTheme.tint10 : (pinMouse.containsMouse ? KappaTheme.tint5 : "transparent")
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 2
+                    color: KappaTheme.sun
+                    visible: root.currentPath === modelData.path
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    spacing: 12
+
+                    Text {
+                        textFormat: Text.PlainText
+                        Layout.preferredWidth: 16
+                        horizontalAlignment: Text.AlignHCenter
+                        text: modelData.kanji
+                        font.family: Tokens.jp
+                        font.pixelSize: 13
+                        color: root.currentPath === modelData.path ? KappaTheme.sun : KappaTheme.inkDim
+                    }
+                    Text {
+                        textFormat: Text.PlainText
+                        Layout.fillWidth: true
+                        text: modelData.label
+                        font.family: Tokens.ui
+                        font.pixelSize: 13
+                        color: root.currentPath === modelData.path ? KappaTheme.ink : KappaTheme.inkDim
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        textFormat: Text.PlainText
+                        visible: pinMouse.containsMouse || unpinMouse.containsMouse
+                        text: "✕"
+                        font.family: Tokens.ui
+                        font.pixelSize: 11
+                        color: unpinMouse.containsMouse ? KappaTheme.sun : KappaTheme.inkFaint
+                        MouseArea {
+                            id: unpinMouse
+                            anchors.fill: parent
+                            anchors.margins: -6
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.unpinRequested(modelData.path)
+                        }
+                    }
+                }
+
+                MouseArea {
+                    id: pinMouse
+                    anchors.fill: parent
+                    z: -1
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
