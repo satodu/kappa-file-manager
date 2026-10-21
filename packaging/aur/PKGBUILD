@@ -1,6 +1,6 @@
 # Maintainer: satodu <sato.du@gmail.com>
 pkgname=kappa-file-manager
-pkgver=0.1.3
+pkgver=0.1.4
 pkgrel=1
 pkgdesc='Brutalist file manager for Ryoku OS (Rust core, Quickshell UI); independent community project'
 arch=('x86_64' 'aarch64')
@@ -10,6 +10,7 @@ depends=('quickshell' 'ryoku-desktop' 'xdg-utils' 'udisks2' 'gcc-libs' 'glibc')
 makedepends=('cargo')
 optdepends=('kdeconnect: phone pairing, ping, ring and sharing'
             'kio-fuse: browse phone folders as local files'
+            'rclone: browse Google Drive and OneDrive remotes (read-only mount)'
             'matugen: Kappa-only color schemes (Appearance)'
             'swww: set an image as wallpaper from the details panel'
             'ghostty: default terminal for "Open terminal here" (any terminal in $TERMINAL also works)')

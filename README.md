@@ -6,7 +6,7 @@
 
 A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
 
-> Version **0.1.3**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
+> Version **0.1.4**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
 
 Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's best ideas (transparent device browsing, KIO-Fuse, KDE Connect integration, XDG places, a clean separation of model and view) and rebuilds them from scratch on a fast **Rust 2024** core, wearing the Ryoku design system.
 
@@ -46,6 +46,7 @@ Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's b
 - **Sorting and grouping:** sort by name, type, date or size (ascending or descending) and group by type with live section counts.
 - **Details panel:** a sliding drawer (`Ctrl+I`) with a large preview, MIME type, location and the dominant colors of an image (click one to copy its hex), a clickable location that copies the path, plus a "set as wallpaper" action.
 - **Own appearance:** `Ctrl+,` lets Kappa follow the Ryoku theme or use its own palette (scheme, seed color and light/dark mode) without changing the rest of the desktop.
+- **Google Drive and OneDrive (via rclone):** remotes you already configured with `rclone config` show up under *Cloud* in the sidebar; click one to mount it read-only and browse it like a folder, `⏏` to unmount. Kappa never touches your rclone credentials.
 - **KDE Connect and KIO-Fuse:** live detection of paired devices, browsing of the phone's folders, sending files from the context menu, ping, ring, clipboard sharing and mounting.
 - **Ryoku internationalization:** follows the system language from `~/.config/ryoku/shell.json` (English or Portuguese).
 
@@ -78,7 +79,7 @@ The interface talks to the backend through a small command-line interface that p
 
 - **Ryoku OS** (provides the `ryoku-desktop` package with the `Ryoku.Ui` QML module), **Quickshell** and **Qt 6**
 - **Rust and Cargo** (edition 2024) to build from source
-- Optional: `kdeconnect` and `kio-fuse` for phone integration, `matugen` for the Kappa-only theme, `swww` for "set as wallpaper"
+- Optional: `kdeconnect` and `kio-fuse` for phone integration, `matugen` for the Kappa-only theme, `swww` for "set as wallpaper", `rclone` for Google Drive / OneDrive
 
 ### Install on Arch Linux (AUR)
 

@@ -50,9 +50,15 @@ Kappa is a file manager, so it handles untrusted names, links, paths and archive
 - Kappa refuses to run as root unless `KAPPA_ALLOW_ROOT` is set, and never asks for elevated privileges (no `sudo`, `pkexec` or setuid helpers). A race therefore cannot be turned into privilege escalation: every operation runs with your own permissions.
 - Files are created with `O_EXCL` (never overwriting), source files are opened with `O_NOFOLLOW`, and moves and renames use `RENAME_NOREPLACE`. A source swapped for a symbolic link after it was checked makes the operation fail instead of following the link.
 
+**Cloud storage (rclone)**
+- Kappa does not talk to any cloud API. If `rclone` is installed, it lists the remotes with `rclone listremotes --long` (names and types only) and shows the `drive` and `onedrive` ones. Login, tokens and the protocol stay with rclone: Kappa never opens `rclone.conf`, never receives or forwards a token, and has no OAuth code.
+- Mounting runs `rclone mount NAME: <dir> --read-only --vfs-cache-mode off`: read-only, and with no disk cache, so the "no caches" rule above still holds. The remote name is validated (`[A-Za-z0-9_-]`, at most 64 characters, never starting with `-`) and must be one of the remotes rclone itself reported, so it can never become an rclone option or a path. The mount point is a private `0700` folder Kappa creates, checked to be an empty real directory (not a link) before mounting; unmounting only touches that folder, with `fusermount3 -u`.
+- Because the mount is read-only, copy-in, delete, rename and move-out all fail on the mount itself, and the existing mount-point guards (`contains_mount`) also stop Kappa from deleting or moving a folder that contains a cloud mount.
+- A slow or hung remote can make a listing wait (the same limit as any network mount); mounting gives up after 60 seconds.
+
 **Logs, history and caches**
 - Kappa keeps no history: no recent files, no search history, no remembered tabs. The one thing it remembers is the last folder, so it can reopen there: a single path in `~/.config/kappa/state.json` (directory `0700`), overwritten on each navigation, validated as a plain absolute path on load, ignored if the folder is gone, and never read or written when `KAPPA_START` is set. Thumbnails are decoded in memory and never written to `~/.cache/thumbnails` or anywhere else.
-- The only file Kappa writes is `~/.config/kappa/theme.json` (colour settings, no paths or names).
+- The only files Kappa writes are in `~/.config/kappa/`: `theme.json` (colour settings), `state.json` (the last folder) and `places.json` (pinned folders). Cloud mount points live under `$XDG_RUNTIME_DIR/kappa/cloud/` (RAM, `0700`).
 - Error messages shown in the app are not logged by Kappa itself. Qt/Quickshell warnings go to a log under `/run/user/<uid>/` (RAM, readable only by you).
 
 **Drag and drop, clipboard and URIs**

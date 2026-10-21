@@ -313,6 +313,26 @@ async fn main() {
                 }
                 return;
             }
+            "--cloud-json" => {
+                println!("{}", ops::cloud::list());
+                return;
+            }
+            "--cloud-mount" => {
+                let name = args.get(2).map(String::as_str).unwrap_or("");
+                match ops::cloud::mount(name) {
+                    Ok(p) => println!("{}", serde_json::json!({ "ok": true, "path": p })),
+                    Err(e) => println!("{}", serde_json::json!({ "ok": false, "kind": format!("{:?}", e.kind()), "error": e.to_string() })),
+                }
+                return;
+            }
+            "--cloud-unmount" => {
+                let name = args.get(2).map(String::as_str).unwrap_or("");
+                match ops::cloud::unmount(name) {
+                    Ok(()) => println!("{}", serde_json::json!({ "ok": true })),
+                    Err(e) => println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() })),
+                }
+                return;
+            }
             "--help" | "-h" => {
                 println!("Kappa File Manager Core");
                 println!("  --list-json <path> [--hidden]");
@@ -323,6 +343,7 @@ async fn main() {
                 println!("  --open <path>");
                 println!("  --delete <path>   (exclusão permanente)\n  --trash <path>");
                 println!("  --mount-device <block_dev>");
+                println!("  --cloud-json | --cloud-mount <remote> | --cloud-unmount <remote>");
                 println!("  --eject-device <block_dev>");
                 println!("  --kde-share <dev_id> <path>");
                 println!("  --kde-ping <dev_id>");

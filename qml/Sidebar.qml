@@ -12,6 +12,10 @@ Rectangle {
     property var devicesList: []
     property var pinnedList: []
     property bool canPin: false
+    property var cloudList: []
+    property string cloudBusy: ""
+    signal cloudClicked(var remote)
+    signal cloudUnmountRequested(string name)
     signal pinDropped()
     signal unpinRequested(string path)
     signal navigateRequested(string path)
@@ -410,6 +414,138 @@ Rectangle {
                             textFormat: Text.PlainText
                             anchors.centerIn: parent
                             text: "KDE"
+                            font.family: Tokens.mono
+                            font.pixelSize: 9
+                            font.bold: true
+                            color: KappaTheme.sun
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5b. Nuvem (rclone): só aparece quando há remotes Google Drive / OneDrive configurados
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.cloudList.length > 0 ? 16 : 0
+            visible: root.cloudList.length > 0
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 20
+            spacing: 8
+            visible: root.cloudList.length > 0
+
+            Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
+            Text {
+                textFormat: Text.PlainText
+                text: root.isPt ? "NUVEM_" : "CLOUD_"
+                font.family: Tokens.ui
+                font.pixelSize: 11
+                font.bold: true
+                color: KappaTheme.inkDim
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: KappaTheme.line
+                Rectangle { anchors.right: parent.right; anchors.top: parent.top; width: 1; height: 5; color: KappaTheme.lineStrong }
+            }
+        }
+
+        Repeater {
+            model: root.cloudList
+
+            delegate: Rectangle {
+                id: cloudItem
+                required property var modelData
+                readonly property bool active: modelData.mounted && root.currentPath.indexOf(modelData.path) === 0
+                Layout.fillWidth: true
+                Layout.preferredHeight: 36
+                radius: root.effectiveRadius
+                color: active ? KappaTheme.tint10 : (cloudMouse.containsMouse ? KappaTheme.tint5 : "transparent")
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 2
+                    color: KappaTheme.sun
+                    visible: cloudItem.active
+                }
+
+                MouseArea {
+                    id: cloudMouse
+                    anchors.fill: parent
+                    z: -1
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.cloudClicked(modelData);
+                        if (typeof app !== "undefined" && app) app.forceActiveFocus();
+                    }
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    spacing: 12
+
+                    Text {
+                        textFormat: Text.PlainText
+                        text: "󰅟"
+                        font.family: Tokens.mono
+                        font.pixelSize: 14
+                        color: cloudItem.active ? KappaTheme.sun : KappaTheme.inkDim
+                    }
+                    Text {
+                        textFormat: Text.PlainText
+                        Layout.fillWidth: true
+                        text: root.cloudBusy === modelData.name ? modelData.name + " …" : modelData.name
+                        font.family: Tokens.ui
+                        font.pixelSize: 13
+                        color: cloudItem.active ? KappaTheme.ink : KappaTheme.inkDim
+                        elide: Text.ElideRight
+                    }
+
+                    // Desmontar (só quando montado)
+                    Rectangle {
+                        implicitWidth: 20
+                        implicitHeight: 20
+                        radius: root.effectiveRadius
+                        color: cloudEjectMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+                        visible: modelData.mounted
+                        Text {
+                            textFormat: Text.PlainText
+                            anchors.centerIn: parent
+                            text: "⏏"
+                            font.family: Tokens.mono
+                            font.pixelSize: 12
+                            color: cloudEjectMouse.containsMouse ? KappaTheme.sun : KappaTheme.inkFaint
+                        }
+                        MouseArea {
+                            id: cloudEjectMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.cloudUnmountRequested(modelData.name)
+                        }
+                    }
+
+                    Rectangle {
+                        implicitWidth: cloudKind.implicitWidth + 10
+                        implicitHeight: 16
+                        radius: root.effectiveRadius
+                        color: "transparent"
+                        border.width: 1
+                        border.color: KappaTheme.lineStrong
+                        Text {
+                            id: cloudKind
+                            textFormat: Text.PlainText
+                            anchors.centerIn: parent
+                            text: modelData.type === "onedrive" ? "ONEDRIVE" : "DRIVE"
                             font.family: Tokens.mono
                             font.pixelSize: 9
                             font.bold: true

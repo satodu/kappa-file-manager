@@ -161,6 +161,11 @@ kappa-file-manager/
    - O backend recusa rodar como root (`root_allowed`); aberturas de origem usam `O_NOFOLLOW`, movimentações `RENAME_NOREPLACE`. Kappa não guarda histórico (só a última pasta, em `~/.config/kappa/state.json`, restaurada ao abrir; `KAPPA_START` desliga), não grava cache de miniaturas, só aceita o drop interno de pastas na Sidebar e só lida com caminhos simples (sem `trash://`/`recent://`). Se isso mudar, atualize `SECURITY.md`.
    - Mover entre discos: copia, `fsync`, confere tamanho e só então apaga a origem; falha remove o destino parcial. Apagar/mover/lixeira de pasta com ponto de montagem é recusado (`contains_mount`). Listagens têm teto de 200.000 itens (`MAX_LISTED_ENTRIES`); prévias exigem `is_regular`.
 
+16. **Nuvem via rclone (Google Drive / OneDrive):**
+   - `src/ops/cloud.rs`: `--cloud-json` (lista remotes `drive`/`onedrive` de `rclone listremotes --long`), `--cloud-mount <remote>` e `--cloud-unmount <remote>`. Monta com `--read-only --vfs-cache-mode off` em `$XDG_RUNTIME_DIR/kappa/cloud/<remote>` (`0700`). O nome do remote passa por `validate_remote_name` e precisa ser um dos listados pelo próprio rclone.
+   - **Nunca** abra `rclone.conf`, nem leia/repasse token, nem use `rclone config dump`; o login é do usuário (`rclone config`). Não monte com escrita nem com cache em disco sem atualizar `SECURITY.md`.
+   - QML: `app.cloudList`, `cloudClicked`, `cloudUnmount`, grupo `NUVEM_`/`CLOUD_` na `Sidebar` (só aparece com remotes). Mensagens seguem o idioma do Ryoku (`app.isPt`).
+
 ---
 
 ## 🛠️ 4. Comandos e Verificações de Qualidade

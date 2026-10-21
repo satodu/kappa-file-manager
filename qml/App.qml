@@ -458,6 +458,90 @@ Rectangle {
         onExited: placesProc.running = true
     }
 
+    // Nuvem via rclone (Google Drive / OneDrive): o Kappa só lê os remotes e monta em somente leitura.
+    // Login e tokens ficam com o rclone (`rclone config`); o Kappa nunca abre o rclone.conf.
+    property var cloudList: []
+    property string cloudBusy: ""
+    property string cloudUnmounting: ""
+    function refreshCloud() { cloudProc.running = true; }
+    function cloudClicked(remote) {
+        if (app.cloudBusy !== "") return;
+        if (remote.mounted && remote.path) { app.navigateAnyPane(remote.path); return; }
+        app.cloudBusy = remote.name;
+        app.notify(app.isPt ? "Montando " + remote.name + "…" : "Mounting " + remote.name + "…");
+        cloudMountProc.command = [app.backendBin, "--cloud-mount", remote.name];
+        cloudMountProc.running = true;
+    }
+    function cloudUnmount(name) {
+        if (app.cloudUnmounting !== "") return;
+        app.cloudUnmounting = name;
+        cloudUnmountProc.command = [app.backendBin, "--cloud-unmount", name];
+        cloudUnmountProc.running = true;
+    }
+    function navigateAnyPane(path) {
+        if (app.isSplit && app.activePane === "right") app.loadRightFolder(path); else app.loadFolder(path);
+    }
+    function notify(message) {
+        app.statusNotice = message;
+        noticeTimer.restart();
+    }
+    Process {
+        id: cloudProc
+        command: [app.backendBin, "--cloud-json"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var data = JSON.parse(this.text);
+                    app.cloudList = data.ok ? (data.remotes || []) : [];
+                } catch (e) { app.cloudList = []; }
+            }
+        }
+    }
+    Process {
+        id: cloudMountProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var name = app.cloudBusy;
+                app.cloudBusy = "";
+                try {
+                    var data = JSON.parse(this.text);
+                    app.refreshCloud();
+                    if (data.ok && data.path) {
+                        app.navigateAnyPane(data.path);
+                    } else {
+                        app.errorMessage = app.isPt
+                            ? "Não foi possível montar \"" + name + "\". Se o login expirou, rode no terminal: rclone config reconnect " + name + ":"
+                            : "Could not mount \"" + name + "\". If the login expired, run in a terminal: rclone config reconnect " + name + ":";
+                    }
+                } catch (e) {
+                    app.errorMessage = app.isPt ? "Falha ao montar a nuvem" : "Failed to mount the cloud";
+                }
+            }
+        }
+    }
+    Process {
+        id: cloudUnmountProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var name = app.cloudUnmounting;
+                app.cloudUnmounting = "";
+                try {
+                    var data = JSON.parse(this.text);
+                    if (data.ok) {
+                        // Se estava dentro da nuvem, volta para a home antes que o caminho suma
+                        for (var i = 0; i < app.cloudList.length; i++) {
+                            var r = app.cloudList[i];
+                            if (r.name === name && r.path && app.currentPath.indexOf(r.path) === 0) app.loadFolder(app.homeDir);
+                        }
+                    } else {
+                        app.errorMessage = app.isPt ? "Não foi possível desmontar \"" + name + "\" (há arquivos em uso?)" : "Could not unmount \"" + name + "\" (files in use?)";
+                    }
+                } catch (e) {}
+                app.refreshCloud();
+            }
+        }
+    }
+
     function mountAndOpenDevice(device) {
         if (device.device_block) {
             mountProc.command = [app.backendBin, "--mount-device", device.device_block];
@@ -1550,7 +1634,8 @@ Rectangle {
     Shortcut {
         context: Qt.WindowShortcut
         enabled: app.shortcutsEnabled
-        sequences: [ StandardKey.Cut ]
+        // Não use StandardKey.Cut: no Linux ele inclui Shift+Del, que é a exclusão permanente
+        sequence: "Ctrl+X"
         onActivated: app.cutItem(null)
     }
 
@@ -1641,6 +1726,7 @@ Rectangle {
     Component.onCompleted: {
         app.forceActiveFocus();
         placesProc.running = true;
+        app.refreshCloud();
         loadFolder(app.currentPath);
     }
 
@@ -1727,6 +1813,10 @@ Rectangle {
                 Layout.fillHeight: true
                 currentPath: app.currentPath
                 placesList: app.placesList
+                cloudList: app.cloudList
+                cloudBusy: app.cloudBusy
+                onCloudClicked: function(remote) { app.cloudClicked(remote); }
+                onCloudUnmountRequested: function(name) { app.cloudUnmount(name); }
                 pinnedList: app.pinnedPlaces
                 canPin: app.draggingFolders.length > 0
                 onPinDropped: app.pinPlaces(app.draggingFolders)
