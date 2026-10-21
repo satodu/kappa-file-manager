@@ -180,6 +180,9 @@ impl FileOperations {
         if let Err(e) = require_absolute(&p.to_string_lossy()).and_then(|_| ensure_not_protected(p)) {
             return Err(trash::Error::Unknown { description: e.to_string() });
         }
+        if super::cloud::is_cloud_path(p) {
+            return Err(trash::Error::Unknown { description: "Na nuvem não há lixeira do Kappa: use a exclusão permanente (vai para a lixeira do provedor)".into() });
+        }
         if std::fs::symlink_metadata(p).map(|m| m.is_dir()).unwrap_or(false) && contains_mount(p) {
             return Err(trash::Error::Unknown { description: "A pasta contém um ponto de montagem (disco ou compartilhamento) e não será removida".into() });
         }

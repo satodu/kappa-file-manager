@@ -12,6 +12,7 @@ Item {
     property var targets: []
     property bool permanent: false
     property bool acknowledged: false
+property bool cloud: false
 
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
@@ -20,8 +21,9 @@ Item {
     signal confirmed()
     signal cancelled()
 
-    function open(items, isPermanent) {
+    function open(items, isPermanent, inCloud) {
         root.targets = items || [];
+        root.cloud = !!inCloud;
         root.permanent = !!isPermanent;
         root.acknowledged = false;
         root.visible = true;
@@ -203,7 +205,9 @@ Item {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 text: root.permanent
-                      ? (root.isPt ? "Esta ação não pode ser desfeita. Os itens serão removidos do disco." : "This cannot be undone. The items will be removed from disk.")
+                      ? (root.cloud
+                         ? (root.isPt ? "Os itens serão apagados na nuvem. O Kappa não tem lixeira aqui: o provedor pode guardá-los na lixeira dele, mas não conte com isso." : "The items will be deleted in the cloud. Kappa has no trash here: the provider may keep them in its own trash, but do not count on it.")
+                         : (root.isPt ? "Esta ação não pode ser desfeita. Os itens serão removidos do disco." : "This cannot be undone. The items will be removed from disk."))
                       : (root.isPt ? "Você poderá restaurar os itens pela Lixeira do sistema." : "You can restore the items from the system Trash.")
                 font.family: Tokens.ui
                 font.pixelSize: 13

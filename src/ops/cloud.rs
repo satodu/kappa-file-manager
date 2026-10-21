@@ -1,6 +1,7 @@
 //! Nuvem via `rclone`: o Kappa só lê quais remotes existem e monta/desmonta com `rclone mount`.
 //! Login, tokens e protocolo ficam com o rclone; o Kappa nunca abre `rclone.conf`, não repassa
-//! segredos e só monta em modo somente leitura, sem cache em disco.
+//! segredos. O mount aceita escrita (enviar arquivos) usando o cache `writes` do rclone, em pasta 0700
+//! na memória (`$XDG_RUNTIME_DIR`); apagar na nuvem sempre passa pela confirmação de exclusão permanente.
 
 use std::io;
 use std::os::unix::fs::DirBuilderExt;
@@ -38,6 +39,18 @@ fn mount_base() -> io::Result<PathBuf> {
         return Err(invalid("Pasta de montagem inválida"));
     }
     Ok(root.join("kappa").join("cloud"))
+}
+
+/// Cache de escrita do rclone: pasta 0700 própria, também em `$XDG_RUNTIME_DIR` (RAM)
+fn cache_dir(name: &str) -> io::Result<PathBuf> {
+    validate_remote_name(name)?;
+    let base = mount_base()?;
+    Ok(base.with_file_name("cloud-cache").join(name))
+}
+
+/// O caminho está dentro de uma nuvem montada pelo Kappa? (comparação léxica; caminhos da CLI já são absolutos e sem `..`)
+pub fn is_cloud_path(path: &std::path::Path) -> bool {
+    mount_base().map(|b| path.starts_with(&b)).unwrap_or(false)
 }
 
 pub fn mount_point(name: &str) -> io::Result<PathBuf> {
@@ -89,7 +102,7 @@ fn is_supported_remote(name: &str) -> bool {
     parse_remotes(&String::from_utf8_lossy(&out.stdout)).iter().any(|(n, _)| n == name)
 }
 
-/// Monta o remote (somente leitura, sem cache em disco) e devolve o ponto de montagem
+/// Monta o remote (com escrita, cache do rclone em RAM) e devolve o ponto de montagem
 pub fn mount(name: &str) -> io::Result<PathBuf> {
     let mp = mount_point(name)?;
     if is_mounted(&mp) {
@@ -111,11 +124,17 @@ pub fn mount(name: &str) -> io::Result<PathBuf> {
         return Err(invalid("Ponto de montagem ocupado"));
     }
 
+    let cache = cache_dir(name)?;
+    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(&cache)?;
+
     let mut child = Command::new("rclone")
         .arg("mount")
         .arg(format!("{name}:"))
         .arg(&mp)
-        .args(["--read-only", "--daemon", "--vfs-cache-mode", "off", "--dir-cache-time", "5m"])
+        .args(["--daemon", "--vfs-cache-mode", "writes", "--umask", "077", "--dir-cache-time", "5m"])
+        .args(["--vfs-cache-max-age", "15m", "--vfs-cache-max-size", "2G"])
+        .arg("--cache-dir")
+        .arg(&cache)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -175,6 +194,15 @@ pub fn unmount(name: &str) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cloud_paths_are_only_under_the_mount_base() {
+        let base = mount_base().unwrap();
+        assert!(is_cloud_path(&base.join("gdrive").join("a.txt")));
+        assert!(!is_cloud_path(std::path::Path::new("/home/x/a.txt")));
+        assert!(!is_cloud_path(&base.with_file_name("cloud-evil").join("a")));
+        assert!(cache_dir("gdrive").unwrap().ends_with("cloud-cache/gdrive"));
+    }
 
     #[test]
     fn remote_names_cannot_become_options_or_paths() {

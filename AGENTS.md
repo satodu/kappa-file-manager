@@ -162,8 +162,8 @@ kappa-file-manager/
    - Mover entre discos: copia, `fsync`, confere tamanho e só então apaga a origem; falha remove o destino parcial. Apagar/mover/lixeira de pasta com ponto de montagem é recusado (`contains_mount`). Listagens têm teto de 200.000 itens (`MAX_LISTED_ENTRIES`); prévias exigem `is_regular`.
 
 16. **Nuvem via rclone (Google Drive / OneDrive):**
-   - `src/ops/cloud.rs`: `--cloud-json` (lista remotes `drive`/`onedrive` de `rclone listremotes --long`), `--cloud-mount <remote>` e `--cloud-unmount <remote>`. Monta com `--read-only --vfs-cache-mode off` em `$XDG_RUNTIME_DIR/kappa/cloud/<remote>` (`0700`). O nome do remote passa por `validate_remote_name` e precisa ser um dos listados pelo próprio rclone.
-   - **Nunca** abra `rclone.conf`, nem leia/repasse token, nem use `rclone config dump`; o login é do usuário (`rclone config`). Não monte com escrita nem com cache em disco sem atualizar `SECURITY.md`.
+   - `src/ops/cloud.rs`: `--cloud-json` (lista remotes `drive`/`onedrive` de `rclone listremotes --long`), `--cloud-mount <remote>` e `--cloud-unmount <remote>`. Monta com escrita (`--vfs-cache-mode writes`, cache `0700` em `$XDG_RUNTIME_DIR/kappa/cloud-cache/<remote>`) em `$XDG_RUNTIME_DIR/kappa/cloud/<remote>` (`0700`). Exclusão na nuvem é sempre permanente com modal (`app.isCloudPath`); `--trash` recusa caminhos da nuvem (`is_cloud_path`). O nome do remote passa por `validate_remote_name` e precisa ser um dos listados pelo próprio rclone.
+   - **Nunca** abra `rclone.conf`, nem leia/repasse token, nem use `rclone config dump`; o login é do usuário (`rclone config`). Não mova o cache para o disco nem tire a confirmação de exclusão sem atualizar `SECURITY.md`.
    - QML: `app.cloudList`, `cloudClicked`, `cloudUnmount`, grupo `NUVEM_`/`CLOUD_` na `Sidebar` (só aparece com remotes). Mensagens seguem o idioma do Ryoku (`app.isPt`).
 
 ---

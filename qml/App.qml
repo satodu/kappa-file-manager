@@ -458,7 +458,7 @@ Rectangle {
         onExited: placesProc.running = true
     }
 
-    // Nuvem via rclone (Google Drive / OneDrive): o Kappa só lê os remotes e monta em somente leitura.
+    // Nuvem via rclone (Google Drive / OneDrive): o Kappa só lê os remotes e monta com escrita (cache em RAM).
     // Login e tokens ficam com o rclone (`rclone config`); o Kappa nunca abre o rclone.conf.
     property var cloudList: []
     property string cloudBusy: ""
@@ -1564,11 +1564,22 @@ Rectangle {
         deleteProc.running = true;
     }
 
+    // Dentro de uma nuvem montada não existe lixeira do Kappa: a exclusão é sempre permanente (confirmada no modal)
+    function isCloudPath(path) {
+        for (var i = 0; i < app.cloudList.length; i++) {
+            var base = app.cloudList[i].path;
+            if (base && path.indexOf(base + "/") === 0) return true;
+        }
+        return false;
+    }
+
     function requestDelete(item, permanent) {
         var targets = app.targetsFor(item);
         if (targets.length === 0) return;
+        var cloud = false;
+        for (var i = 0; i < targets.length; i++) if (app.isCloudPath(targets[i].path)) cloud = true;
         app.showDeleteModal = true;
-        deleteModal.open(targets, !!permanent);
+        deleteModal.open(targets, !!permanent || cloud, cloud);
     }
 
     function confirmDelete() {
