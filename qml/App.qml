@@ -45,7 +45,7 @@ Rectangle {
     property var selectedPaths: []
     property var rightSelectedPaths: []
     property string selectionAnchor: ""
-    property var pendingSelectPaths: []
+    property var pendingSelectPaths: Quickshell.env("KAPPA_SELECT") ? [Quickshell.env("KAPPA_SELECT")] : []
     property string pendingRenamePath: ""
 
     // Área de transferência / Clipboard (Ctrl+C, Ctrl+X, Ctrl+V)
@@ -110,13 +110,15 @@ Rectangle {
     }
 
     // Atalhos de edição ficam desligados enquanto um campo de texto ou modal tem o foco
-    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showDeleteModal && !app.showAppearance && !app.showConfirmModal && !app.anyPathEditing
+    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showOpenWithModal && !app.showDropModal && !app.showDeleteModal && !app.showAppearance && !app.showConfirmModal && !app.anyPathEditing
 
     // Exibição de Arquivos Ocultos (Ctrl+H)
     property bool showHidden: false
 
     // Modal de Renomeação (F2)
     property bool showRenameModal: false
+    property bool showOpenWithModal: false
+    property var openWithTarget: null
     property var renameTargetItem: null
 
     // Ordenação e Agrupamento (Nós 51, 2707, 2866, 2710 do Figcraft)
@@ -183,6 +185,48 @@ Rectangle {
     readonly property var pinKanji: ["河","山","川","海","森","林","空","星","月","日","火","水","木","金","土","風","雲","花","桜","竜","虎","鳥","魚","道","門","光","影","夢","和","心","力","石","雪","雨","鶴","狐","波","岩","谷","島"]
     readonly property int maxPins: 32
     property var draggingFolders: []
+    property int draggingCount: 0
+    property var draggingPaths: []
+
+    // Soltar arquivos do Kappa numa pasta: confirma copiar ou mover (o conteúdo do drop nunca é usado)
+    property bool showDropModal: false
+    property var dropPaths: []
+    property string dropDest: ""
+    function parentOf(p) { var i = p.lastIndexOf("/"); return i <= 0 ? "/" : p.substring(0, i); }
+    function canDropOn(dest) {
+        var src = app.draggingPaths;
+        if (!dest || dest.charAt(0) !== "/" || !src || src.length === 0) return false;
+        var allHere = true;
+        for (var i = 0; i < src.length; i++) {
+            // Nada de soltar uma pasta nela mesma ou dentro de si
+            if (dest === src[i] || dest.indexOf(src[i] + "/") === 0) return false;
+            if (app.parentOf(src[i]) !== dest) allHere = false;
+        }
+        return !allHere;
+    }
+    function requestDrop(paths, destDir) {
+        if (!paths || paths.length === 0 || !destDir) return;
+        if (app.transferState === "running" || app.transferState === "paused") {
+            app.notify(app.isPt ? "Já há uma transferência em andamento" : "A transfer is already running");
+            return;
+        }
+        app.dropPaths = paths;
+        app.dropDest = destDir;
+        app.showDropModal = true;
+        dropModal.open();
+    }
+    function closeDropModal() {
+        app.showDropModal = false;
+        app.dropPaths = [];
+        app.dropDest = "";
+        app.forceActiveFocus();
+    }
+    function confirmDrop(mode) {
+        var paths = app.dropPaths;
+        var dest = app.dropDest;
+        app.closeDropModal();
+        if (paths.length > 0 && dest !== "") app.startTransfer(mode, paths, dest);
+    }
     property var pinnedPlaces: app.loadPins()
     FileView {
         id: pinsFile
@@ -1183,6 +1227,24 @@ Rectangle {
             return;
         }
 
+        // Modal copiar/mover: o próprio modal trata C, M e Esc
+        if (app.showDropModal) {
+            if (event.key === Qt.Key_Escape) {
+                app.closeDropModal();
+                event.accepted = true;
+            }
+            return;
+        }
+
+        // Modal "Outro aplicativo…": o campo de busca cuida das teclas
+        if (app.showOpenWithModal) {
+            if (event.key === Qt.Key_Escape) {
+                app.closeOpenWithModal();
+                event.accepted = true;
+            }
+            return;
+        }
+
         // Se estiver com modal de renomear aberto, deixa o modal cuidar das teclas
         if (app.showRenameModal) {
             if (event.key === Qt.Key_Escape) {
@@ -1464,6 +1526,79 @@ Rectangle {
                 } catch (e) {}
             }
         }
+    }
+
+    // Abrir com…: lista os aplicativos do tipo (preenche o submenu do menu de contexto) e abre com o escolhido
+    Process {
+        id: openWithListProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var apps = [];
+                try {
+                    var data = JSON.parse(this.text);
+                    if (data.ok && data.apps) apps = data.apps;
+                } catch (e) {}
+                contextMenu.openWithApps = apps;
+                contextMenu.openWithLoading = false;
+            }
+        }
+    }
+
+    Process {
+        id: openWithAllProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var apps = [];
+                try {
+                    var data = JSON.parse(this.text);
+                    if (data.ok && data.apps) apps = data.apps;
+                } catch (e) {}
+                openWithModal.apps = apps;
+                openWithModal.loading = false;
+            }
+        }
+    }
+
+    Process {
+        id: openWithProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var data = JSON.parse(this.text);
+                    if (data.ok === false && data.error) app.errorMessage = data.error;
+                } catch (e) {}
+            }
+        }
+    }
+
+    function listOpenWith(item) {
+        if (!item || !item.path) { contextMenu.openWithLoading = false; return; }
+        openWithListProc.running = false;
+        openWithListProc.command = [app.backendBin, "--open-with-json", item.path];
+        openWithListProc.running = true;
+    }
+
+    function openWithOther(item) {
+        if (!item || !item.path) return;
+        app.openWithTarget = item;
+        app.showOpenWithModal = true;
+        openWithModal.open(item);
+        openWithAllProc.running = false;
+        openWithAllProc.command = [app.backendBin, "--open-with-json", item.path, "--all"];
+        openWithAllProc.running = true;
+    }
+
+    function closeOpenWithModal() {
+        app.showOpenWithModal = false;
+        app.openWithTarget = null;
+        app.forceActiveFocus();
+    }
+
+    function openItemWith(item, appId) {
+        if (!item || !item.path) return;
+        openWithProc.running = false;
+        openWithProc.command = [app.backendBin, "--open-with", appId, item.path];
+        openWithProc.running = true;
     }
 
     function confirmOpen() {
@@ -1831,6 +1966,7 @@ Rectangle {
                 pinnedList: app.pinnedPlaces
                 canPin: app.draggingFolders.length > 0
                 onPinDropped: app.pinPlaces(app.draggingFolders)
+                onDropRequested: function(paths, destDir) { app.requestDrop(paths, destDir); }
                 onUnpinRequested: function(p) { app.unpinPlace(p); }
                 devicesList: app.devicesList
                 onNavigateRequested: function(p) {
@@ -1968,6 +2104,8 @@ Rectangle {
                     id: fileList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    folderPath: app.currentPath
+                    onDropRequested: function(paths, destDir) { app.requestDrop(paths, destDir); }
                     visible: !app.isSplit && app.viewMode !== "kde"
                     entries: app.currentEntries
                     selectedItem: app.selectedItem
@@ -2040,6 +2178,8 @@ Rectangle {
                             FileList {
                                 id: splitFileListA
                                 showWatermark: false
+                                folderPath: app.currentPath
+                                onDropRequested: function(paths, destDir) { app.requestDrop(paths, destDir); }
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 entries: app.currentEntries
@@ -2181,6 +2321,8 @@ Rectangle {
                             // Lista de arquivos do Painel B (Nó 2587)
                             FileList {
                                 id: splitFileListB
+                                folderPath: app.rightPath
+                                onDropRequested: function(paths, destDir) { app.requestDrop(paths, destDir); }
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 entries: app.rightEntries
@@ -2306,6 +2448,15 @@ Rectangle {
         anchors.fill: parent
         onOpenTriggered: function(item) {
             if (item) app.openItem(item);
+        }
+        onOpenWithListRequested: function(item) {
+            app.listOpenWith(item);
+        }
+        onOpenWithTriggered: function(item, appId) {
+            app.openItemWith(item, appId);
+        }
+        onOpenWithOtherTriggered: function(item) {
+            app.openWithOther(item);
         }
         onOpenNewTabTriggered: function(item) {
             var targetPath = (item && item.is_dir) ? item.path : ((app.isSplit && app.activePane === "right") ? app.rightPath : app.currentPath);
@@ -2438,6 +2589,79 @@ Rectangle {
             app.showRenameModal = false;
             app.renameTargetItem = null;
             app.forceActiveFocus();
+        }
+    }
+
+    // Modal "Copiar ou mover?" ao soltar arquivos numa pasta
+    DropModal {
+        id: dropModal
+        z: 115
+        anchors.fill: parent
+        active: app.showDropModal
+        paths: app.dropPaths
+        destDir: app.dropDest
+        onChosen: function(mode) { app.confirmDrop(mode); }
+        onCancelled: app.closeDropModal()
+    }
+
+    // Modal "Abrir com > Outro aplicativo…"
+    OpenWithModal {
+        id: openWithModal
+        z: 110
+        anchors.fill: parent
+        active: app.showOpenWithModal
+        onChosen: function(appId) {
+            app.openItemWith(app.openWithTarget, appId);
+            app.closeOpenWithModal();
+        }
+        onCancelled: app.closeOpenWithModal()
+    }
+
+    // Aviso de arrasto em andamento (os arquivos saem como lista de URIs para a janela de destino)
+    Rectangle {
+        id: dragPill
+        z: 125
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: app.draggingCount > 0 ? 48 : 32
+        implicitWidth: dragPillRow.implicitWidth + 32
+        implicitHeight: 34
+        radius: app.systemRadius
+        color: KappaTheme.paperLift
+        border.width: 1
+        border.color: KappaTheme.sun
+        opacity: app.draggingCount > 0 ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 140 } }
+        Behavior on anchors.bottomMargin { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+        Row {
+            id: dragPillRow
+            anchors.centerIn: parent
+            spacing: 10
+
+            Text {
+                id: dragArrow
+                textFormat: Text.PlainText
+                text: "↗"
+                font.family: Tokens.mono
+                font.pixelSize: 14
+                color: KappaTheme.sun
+                SequentialAnimation on y {
+                    running: app.draggingCount > 0
+                    loops: Animation.Infinite
+                    NumberAnimation { from: 0; to: -3; duration: 380; easing.type: Easing.InOutSine }
+                    NumberAnimation { from: -3; to: 0; duration: 380; easing.type: Easing.InOutSine }
+                }
+            }
+            Text {
+                textFormat: Text.PlainText
+                text: (app.isPt ? "ARRASTANDO_ " : "DRAGGING_ ") + app.draggingCount + (app.isPt ? (app.draggingCount === 1 ? " item" : " itens") : (app.draggingCount === 1 ? " item" : " items"))
+                font.family: Tokens.mono
+                font.pixelSize: 11
+                font.letterSpacing: 1.4
+                color: KappaTheme.ink
+            }
         }
     }
 

@@ -1,12 +1,12 @@
 # Maintainer: satodu <sato.du@gmail.com>
 pkgname=kappa-file-manager
-pkgver=0.1.5
+pkgver=0.1.6
 pkgrel=1
 pkgdesc='Brutalist file manager for Ryoku OS (Rust core, Quickshell UI); independent community project'
 arch=('x86_64' 'aarch64')
 url='https://github.com/satodu/kappa-file-manager'
 license=('0BSD')
-depends=('quickshell' 'ryoku-desktop' 'xdg-utils' 'udisks2' 'gcc-libs' 'glibc')
+depends=('quickshell' 'ryoku-desktop' 'xdg-utils' 'glib2' 'udisks2' 'gcc-libs' 'glibc')
 makedepends=('cargo')
 optdepends=('kdeconnect: phone pairing, ping, ring and sharing'
             'kio-fuse: browse phone folders as local files'

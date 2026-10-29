@@ -95,6 +95,41 @@ Item {
         if (typeof app !== "undefined" && app) app.draggingFolders = list;
     }
 
+    // Indicadores de arrasto: itens de origem esmaecidos aqui, "fantasma" sob o ponteiro e aviso em App
+    property var draggingPaths: []
+    readonly property var draggingSet: {
+        var m = ({});
+        for (var i = 0; i < draggingPaths.length; i++) m[draggingPaths[i]] = true;
+        return m;
+    }
+    property url ghostUrl: ""
+
+    function refreshGhost(item) {
+        if (!item) return;
+        ghost.name = item.name;
+        ghost.isDir = item.is_dir === true;
+        ghost.count = dragPaths(item).length;
+        ghost.grabToImage(function(result) { root.ghostUrl = result.url; }, Qt.size(ghost.width, ghost.height));
+    }
+    function beginDrag(item) {
+        var paths = dragPaths(item);
+        root.draggingPaths = paths;
+        setDraggingFolders(dragFolders(item));
+        if (typeof app !== "undefined" && app) { app.draggingCount = paths.length; app.draggingPaths = paths; }
+    }
+    function endDrag() {
+        root.draggingPaths = [];
+        setDraggingFolders([]);
+        if (typeof app !== "undefined" && app) { app.draggingCount = 0; app.draggingPaths = []; }
+    }
+
+    // Molde da imagem do arrasto (fora da tela)
+    DragGhost {
+        id: ghost
+        x: -2000
+        y: -2000
+    }
+
     // Só `text/uri-list` (URIs file:// com cada trecho codificado): é o que gerenciadores de arquivos comuns enviam.
     // Terminais colam o caminho, chats e navegadores anexam o arquivo. Não se envia `text/plain` ao mesmo tempo:
     // alguns programas aceitam os dois e colariam o caminho duas vezes; além disso, um nome com quebra de linha
@@ -107,6 +142,19 @@ Item {
             if (u !== "") uris.push(u);
         }
         return ({ "text/uri-list": uris.join("\r\n") + "\r\n" });
+    }
+
+    // Pasta que esta lista mostra (destino de um arrasto solto no fundo da lista) e pedido de soltar arquivos
+    property string folderPath: ""
+    signal dropRequested(var paths, string destDir)
+
+    // Só aceita arrasto que nasceu no Kappa (app.draggingPaths); o conteúdo do drop é ignorado
+    function canDropOn(dest) {
+        return (typeof app !== "undefined" && app) ? app.canDropOn(dest) : false;
+    }
+    function dropOn(dest) {
+        if (!canDropOn(dest)) return;
+        root.dropRequested(app.draggingPaths.slice(), dest);
     }
 
     signal itemActivated(var item)
@@ -127,6 +175,16 @@ Item {
         if (typeof app !== "undefined" && app && app.handleKeyPress) {
             app.handleKeyPress(event);
         }
+    }
+
+    // Soltar no fundo da lista: destino é a pasta mostrada (útil no split view, de um painel para o outro)
+    DropArea {
+        id: paneDrop
+        anchors.fill: parent
+        keys: ["text/uri-list"]
+        enabled: root.folderPath !== "" && root.canDropOn(root.folderPath)
+        onEntered: function(drag) { drag.accepted = true; }
+        onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(root.folderPath); }
     }
 
     // Clique no fundo limpa seleção e abre menu de contexto da pasta fora de qualquer item
@@ -441,14 +499,43 @@ Item {
             Drag.proposedAction: Qt.CopyAction
             Drag.mimeData: root.dragMime(modelData)
             Drag.active: rowDrag.active
-            Drag.onDragStarted: root.setDraggingFolders(root.dragFolders(modelData))
-            Drag.onDragFinished: root.setDraggingFolders([])
+            Drag.imageSource: root.ghostUrl
+            Drag.hotSpot: Qt.point(24, 22)
+            Drag.onDragStarted: root.beginDrag(modelData)
+            Drag.onDragFinished: root.endDrag()
+
+            // Indicador de arrasto: o item de origem esmaece enquanto os arquivos estão "no ar"
+            readonly property bool beingDragged: root.draggingSet[modelData.path] === true
+            opacity: beingDragged ? 0.4 : 1
+            Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            // Prepara a imagem que acompanha o ponteiro antes de o arrasto começar
+            readonly property bool pointerOver: rowMouse.containsMouse
+            onPointerOverChanged: if (pointerOver) root.refreshGhost(modelData)
             DragHandler {
                 id: rowDrag
                 target: null
                 acceptedButtons: Qt.LeftButton
                 dragThreshold: 10
                 onActiveChanged: if (active && root.selectedSet[modelData.path] !== true) root.itemClicked(modelData, 0)
+            }
+
+            // Soltar arquivos do próprio Kappa nesta pasta: pergunta se copia ou move
+            DropArea {
+                id: folderDrop
+                z: 5
+                anchors.fill: parent
+                keys: ["text/uri-list"]
+                enabled: modelData.is_dir === true && !beingDragged && root.canDropOn(modelData.path)
+                onEntered: function(drag) { drag.accepted = true; }
+                onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
+                Rectangle {
+                    anchors.fill: parent
+                    visible: folderDrop.containsDrag
+                    radius: parent.parent.radius
+                    color: KappaTheme.tint10
+                    border.width: 1
+                    border.color: KappaTheme.sun
+                }
             }
 
             // Marcador de seleção: barra de 2px na lateral (seleções contíguas se fundem)
@@ -641,8 +728,18 @@ Item {
             Drag.proposedAction: Qt.CopyAction
             Drag.mimeData: root.dragMime(modelData)
             Drag.active: gridDrag.active
-            Drag.onDragStarted: root.setDraggingFolders(root.dragFolders(modelData))
-            Drag.onDragFinished: root.setDraggingFolders([])
+            Drag.imageSource: root.ghostUrl
+            Drag.hotSpot: Qt.point(24, 22)
+            Drag.onDragStarted: root.beginDrag(modelData)
+            Drag.onDragFinished: root.endDrag()
+
+            // Indicador de arrasto: o item de origem esmaece enquanto os arquivos estão "no ar"
+            readonly property bool beingDragged: root.draggingSet[modelData.path] === true
+            opacity: beingDragged ? 0.4 : 1
+            Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            // Prepara a imagem que acompanha o ponteiro antes de o arrasto começar
+            readonly property bool pointerOver: gridMouse.containsMouse
+            onPointerOverChanged: if (pointerOver) root.refreshGhost(modelData)
             DragHandler {
                 id: gridDrag
                 target: null
@@ -654,6 +751,25 @@ Item {
             border.color: {
                 if (isSelected) return KappaTheme.sun;
                 return gridMouse.containsMouse ? KappaTheme.lineStrong : KappaTheme.line;
+            }
+
+            // Soltar arquivos do próprio Kappa nesta pasta: pergunta se copia ou move
+            DropArea {
+                id: folderDrop
+                z: 5
+                anchors.fill: parent
+                keys: ["text/uri-list"]
+                enabled: modelData.is_dir === true && !beingDragged && root.canDropOn(modelData.path)
+                onEntered: function(drag) { drag.accepted = true; }
+                onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
+                Rectangle {
+                    anchors.fill: parent
+                    visible: folderDrop.containsDrag
+                    radius: parent.parent.radius
+                    color: KappaTheme.tint10
+                    border.width: 1
+                    border.color: KappaTheme.sun
+                }
             }
 
             // Ticks técnicos de calibração nos 4 cantos quando selecionado (Nó 919 do Figcraft)
@@ -847,5 +963,19 @@ Item {
         Behavior on opacity {
             NumberAnimation { duration: 140; easing.type: Easing.OutExpo }
         }
+    }
+
+    // Contorno do painel de destino durante o arrasto
+    Rectangle {
+        z: 30
+        anchors.fill: parent
+        anchors.margins: 2
+        color: "transparent"
+        radius: root.effectiveRadius
+        border.width: 1
+        border.color: KappaTheme.sun
+        opacity: paneDrop.containsDrag ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 120 } }
     }
 }

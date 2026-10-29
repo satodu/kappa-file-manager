@@ -50,6 +50,9 @@ kappa-file-manager/
 │   ├── KappaSafe.qml            // Singleton de segurança: URLs file:// codificadas, prévias limitadas, clipboard
 │   ├── TransferCard.qml         // Cartão de progresso de cópia/movimentação (barra segmentada, pausar, cancelar)
 │   ├── RenameModal.qml          // Modal de renomeação (F2 e nova pasta)
+│   ├── DropModal.qml            // Soltar numa pasta: "Copiar ou mover?" (C / M / Esc)
+│   ├── DragGhost.qml            // Cartão que acompanha o ponteiro ao arrastar arquivos (imagem do QDrag)
+│   ├── OpenWithModal.qml        // "Abrir com > Outro aplicativo…": busca em todos os apps instalados
 │   ├── DeleteModal.qml          // Modal de confirmação de exclusão (lixeira / permanente)
 │   ├── AppearanceDialog.qml     // Diálogo de Aparência (tema próprio do Kappa)
 │   ├── KappaTheme.qml           // Singleton de cores: segue Tokens ou paleta fixa via matugen
@@ -150,7 +153,7 @@ kappa-file-manager/
    - **Transferência (`--transfer <copy|move> <destino> <origens...>`):** emite JSON por linha (`start`, `progress`, `done`, `error`) lido pelo `SplitParser` em `App.qml` e mostrado no `TransferCard`. `Esc` cancela (SIGTERM e remove o arquivo parcial); Pausar usa SIGSTOP/SIGCONT. Ao concluir, os itens colados ficam selecionados.
    - **Nova pasta** (`F7`/`Ctrl+Shift+N`): cria a pasta e abre o `RenameModal` já nela (`pendingRenamePath`).
    - **Localização:** `Ctrl+Shift+C` (e "Copiar localização" no menu) copia o caminho em texto via `app.copyPath()`. Enquanto o campo de caminho está em edição (`app.anyPathEditing`), os atalhos de arquivos ficam desligados para `Ctrl+C/V/A` valerem para o texto. Os níveis da barra de caminho que não cabem viram o menu `…` (`Toolbar.relayoutCrumbs`).
-   - **Arrastar para fora:** `FileList.dragMime()` envia só `text/uri-list` (URIs `file://` codificadas) via `Drag.Automatic`; não mande `text/plain` junto (duplica em terminais e abre brecha com quebras de linha). O único drop aceito é o da `Sidebar` (`DropArea`): arrastar pasta do próprio `FileList` fixa um atalho em Lugares (`app.pinPlaces`, `~/.config/kappa/places.json`, até 32, kanji aleatório de `app.pinKanji`). O drop ignora o conteúdo recebido e usa `app.draggingFolders`, preenchido pelo `FileList` ao iniciar o arrasto; drop de fora é recusado (`canPin`). Não passe a usar `drop.urls`.
+   - **Arrastar para fora:** `FileList.dragMime()` envia só `text/uri-list` (URIs `file://` codificadas) via `Drag.Automatic`; não mande `text/plain` junto (duplica em terminais e abre brecha com quebras de linha). Os drops aceitos são só de arrasto que nasceu no próprio Kappa (item 22). Na `Sidebar` (`DropArea`), arrastar pasta do próprio `FileList` para fora das linhas fixa um atalho em Lugares (`app.pinPlaces`, `~/.config/kappa/places.json`, até 32, kanji aleatório de `app.pinKanji`). O drop ignora o conteúdo recebido e usa `app.draggingFolders`, preenchido pelo `FileList` ao iniciar o arrasto; drop de fora é recusado (`canPin`). Não passe a usar `drop.urls`.
    - Variáveis de ambiente de teste: `KAPPA_START=<dir>`, `KAPPA_VIEW=list|grid`.
 
 15. **Compactar e extrair (0.1.1-beta) e regras de segurança:**
@@ -165,6 +168,32 @@ kappa-file-manager/
    - `src/ops/cloud.rs`: `--cloud-json` (lista remotes `drive`/`onedrive` de `rclone listremotes --long`), `--cloud-mount <remote>` e `--cloud-unmount <remote>`. Monta com escrita (`--vfs-cache-mode writes`, cache `0700` em `$XDG_RUNTIME_DIR/kappa/cloud-cache/<remote>`) em `$XDG_RUNTIME_DIR/kappa/cloud/<remote>` (`0700`). Exclusão na nuvem é sempre permanente com modal (`app.isCloudPath`); `--trash` recusa caminhos da nuvem (`is_cloud_path`). O nome do remote passa por `validate_remote_name` e precisa ser um dos listados pelo próprio rclone.
    - **Nunca** abra `rclone.conf`, nem leia/repasse token, nem use `rclone config dump`; o login é do usuário (`rclone config`). Não mova o cache para o disco nem tire a confirmação de exclusão sem atualizar `SECURITY.md`.
    - QML: `app.cloudList`, `cloudClicked`, `cloudUnmount`, grupo `NUVEM_`/`CLOUD_` na `Sidebar` (só aparece com remotes). Mensagens seguem o idioma do Ryoku (`app.isPt`).
+
+17. **Abrir com… (0.1.6):**
+   - `src/ops/openwith.rs`: `--open-with-json <caminho>` (lista `{id,name,icon}`, padrão do sistema primeiro; usa `xdg-mime`, `mimeinfo.cache` e `.desktop`, texto também casa `text/plain`) e `--open-with-json <caminho> --all` (todos os apps instalados, para "Outro aplicativo…") e `--open-with <id.desktop> <caminho>` (lança com `gio launch`, sem shell nem parse de `Exec`). O id passa por `validate_desktop_id` e precisa ser um `.desktop` visível dos diretórios XDG; comando livre nunca é aceito.
+   - QML: item `Abrir com ›` nos dois menus (normal e áudio) abre o submenu `ABRIR COM_` em `ContextMenu.qml` (`showOpenWithSubmenu`, `openWithApps`) com `Outro aplicativo…` no fim, que abre `OpenWithModal.qml` (busca, ↑↓ e Enter); `App.qml` tem `listOpenWith` / `openItemWith` / `openWithOther`. Sem teste novo de segurança no QML; as regras ficam em testes de `openwith.rs`.
+
+18. **Integração com o desktop / gerenciador padrão (0.1.6):**
+   - `src/ops/integration.rs`: `--start-from <pasta|arquivo|file://…>` (duas linhas: pasta e item a selecionar; o launcher `packaging/kappa-file-manager` exporta `KAPPA_START` e `KAPPA_SELECT`), `--dbus-service` (`org.freedesktop.FileManager1`: `ShowFolders`, `ShowItems`, `ShowItemProperties`, via `zbus` com `tokio`+`service`; só abre janelas, no máximo 8 por chamada e 16 por minuto, sai após 60 s ocioso; `KAPPA_LAUNCHER` troca o launcher nos testes) e `--set-default` / `--unset-default` (só no perfil do usuário: `xdg-mime default … inode/directory` + `~/.local/share/dbus-1/services/org.freedesktop.FileManager1.service`; guarda o padrão anterior em `~/.config/kappa/previous-default`).
+   - **Nunca** aceite URIs que não sejam `file://` local, nunca instale o `.service` em `/usr/share/dbus-1` (colide com Nautilus/Dolphin) e nunca sobrescreva um serviço que não tenha a linha-marca do Kappa. Qualquer ajuste exige teste em `integration.rs`.
+   - Isto NÃO é o portal `FileChooser` (janelas abrir/salvar de outros apps): esse é outro trabalho.
+
+19. **Uso dos discos na Sidebar (0.1.6):**
+   - `--places-json` acrescenta `total_bytes` e `used_bytes` (via `core::places::disk_usage`, `statvfs`) aos dispositivos locais montados; rede/KDE Connect e discos desmontados ficam sem os campos.
+   - `Sidebar.qml`: o item de dispositivo com uso passa de 36 para 56px e mostra barra de 4px + `usado / total` e `%` (base 1024, `root.formatBytes`); a barra vira vermillion (`KappaTheme.sun`) a partir de 90%. Sem uso, mantém os `236x36px` da especificação.
+
+20. **Indicadores de arrasto (0.1.6):**
+   - `FileList.qml`: ao arrastar, os itens de origem esmaecem (`draggingPaths`/`draggingSet`, opacidade 0.4 animada) e a imagem do `QDrag` é o cartão `DragGhost.qml` (ícone, nome, contagem se houver vários), gerado com `grabToImage` quando o ponteiro passa sobre o item (`refreshGhost`) e usado em `Drag.imageSource`/`Drag.hotSpot`. `App.qml` mostra a pílula `ARRASTANDO_ N itens` (`draggingCount`). Com pasta do Kappa em arrasto (`canPin`), a `Sidebar` ganha contorno pulsante, mais forte quando o ponteiro está sobre ela (`pinDrop.containsDrag`).
+   - Só visual: o mime continua apenas `text/uri-list`. Não use `drop.urls` nem aceite arrasto externo por causa disso (ver item 22).
+
+21. **Estado ao vivo do KDE Connect (0.1.6):**
+   - `src/ops/kdestatus.rs`: `--kde-status-json <id>` lê pelo D-Bus de sessão (`zbus`, só `Properties.Get`) `org.kde.kdeconnect.device.battery` (`charge`, `isCharging`, `hasBattery`) e `connectivity_report` (`cellularNetworkType`, `cellularNetworkStrength`), mais se o celular está montado (`/run/user/<uid>/<id>` em `/proc/self/mountinfo`). O id passa por `validate_device_id`; cada leitura tem timeout de 3 s; campos ausentes viram `null`.
+   - `KdeDeviceView.qml` consulta isso a cada 5 s só enquanto está visível (`Timer` + `Process`). O KDE Connect não expõe o tamanho do armazenamento (o sshfs devolve 1000G fixos), então o cartão ARMAZENAMENTO mostra apenas Montado / Não montado. Não volte a usar valores fixos do design nesses cartões.
+   - Cuidado nos testes: argumento desconhecido em `kappa-file-manager --xyz` abre a UI. Se o build falhar, o binário antigo não conhece a flag nova e abre a janela.
+
+22. **Soltar numa pasta: copiar ou mover (0.1.6):**
+   - Soltar arquivos arrastados do Kappa sobre uma pasta da lista/grade, sobre o fundo de um painel (a pasta mostrada; útil no split view) ou sobre uma linha da `Sidebar` (lugares, fixados, discos locais montados, nuvem montada) abre `DropModal.qml` ("Copiar ou mover?": `C`, `M`, `Esc`; Enter não faz nada) e só então chama `app.startTransfer(copy|move, origens, destino)` (o mesmo `--transfer` e `TransferCard` do colar). Soltar fora das linhas da Sidebar continua fixando pasta em Lugares.
+   - **Segurança:** o drop só vale se `app.draggingPaths` foi preenchido pelo `FileList` ao iniciar o arrasto (`beginDrag`); o conteúdo recebido (`drop.urls`/mime) é ignorado, então arrasto de fora é recusado. O destino vem do estado do QML, nunca do drop. `app.canDropOn` recusa soltar na própria pasta de origem, numa pasta sobre ela mesma ou dentro de si; o backend ainda valida tudo (`ensure_not_into_self`, `RENAME_NOREPLACE`, nomes únicos). Não adicione aceitação de drop externo sem atualizar `SECURITY.md`.
 
 ---
 

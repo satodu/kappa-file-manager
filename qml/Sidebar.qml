@@ -17,6 +17,7 @@ Rectangle {
     signal cloudClicked(var remote)
     signal cloudUnmountRequested(string name)
     signal pinDropped()
+    signal dropRequested(var paths, string destDir)
     signal unpinRequested(string path)
     signal navigateRequested(string path)
     signal kdeDeviceClicked(var device)
@@ -24,6 +25,26 @@ Rectangle {
     signal deviceEjectRequested(string blockOrPath)
 
     readonly property bool isPt: I18n.lang.startsWith("pt")
+
+    // Bytes em base 1024 (como o lsblk): "412.3 GB" / "412,3 GB" conforme o idioma
+    function formatBytes(n) {
+        var units = ["B", "KB", "MB", "GB", "TB", "PB"];
+        var i = 0;
+        var v = n;
+        while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+        var t = (i === 0 || v >= 100) ? Math.round(v).toString() : v.toFixed(1);
+        return (root.isPt ? t.replace(".", ",") : t) + " " + units[i];
+    }
+
+    // Soltar arquivos numa pasta da barra lateral: só arrasto do próprio Kappa (app.draggingPaths)
+    function canDropOn(dest) {
+        return (typeof app !== "undefined" && app) ? app.canDropOn(dest) : false;
+    }
+    function dropOn(dest) {
+        if (!canDropOn(dest)) return;
+        root.dropRequested(app.draggingPaths.slice(), dest);
+    }
+
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
 
     PixelGlyphs { id: glyphs }
@@ -37,6 +58,26 @@ Rectangle {
         onDropped: function(drop) {
             if (root.canPin) { drop.accept(Qt.CopyAction); root.pinDropped(); }
             else drop.accepted = false;
+        }
+    }
+
+    // Arrastando uma pasta do Kappa: contorno pulsante convida a soltar aqui para fixar em Lugares
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: 4
+        radius: root.effectiveRadius
+        color: pinDrop.containsDrag ? KappaTheme.tint10 : "transparent"
+        border.width: 1
+        border.color: KappaTheme.sun
+        opacity: root.canPin ? (pinDrop.containsDrag ? 1 : pinPulse) : 0
+        visible: opacity > 0
+        property real pinPulse: 0.35
+        Behavior on opacity { NumberAnimation { duration: 140 } }
+        SequentialAnimation on pinPulse {
+            running: root.canPin && !pinDrop.containsDrag
+            loops: Animation.Infinite
+            NumberAnimation { from: 0.25; to: 0.7; duration: 700; easing.type: Easing.InOutSine }
+            NumberAnimation { from: 0.7; to: 0.25; duration: 700; easing.type: Easing.InOutSine }
         }
     }
 
@@ -148,6 +189,25 @@ Rectangle {
                     }
                 }
 
+                // Soltar arquivos do Kappa aqui: pergunta se copia ou move para esta pasta
+                DropArea {
+                    id: placeDrop
+                    z: 5
+                    anchors.fill: parent
+                    keys: ["text/uri-list"]
+                    enabled: root.canDropOn(modelData.path)
+                    onEntered: function(drag) { drag.accepted = true; }
+                    onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: placeDrop.containsDrag
+                        radius: root.effectiveRadius
+                        color: KappaTheme.tint10
+                        border.width: 1
+                        border.color: KappaTheme.sun
+                    }
+                }
+
                 MouseArea {
                     id: itemMouse
                     anchors.fill: parent
@@ -224,6 +284,25 @@ Rectangle {
                     }
                 }
 
+                // Soltar arquivos do Kappa aqui: pergunta se copia ou move para esta pasta
+                DropArea {
+                    id: pinDropRow
+                    z: 5
+                    anchors.fill: parent
+                    keys: ["text/uri-list"]
+                    enabled: root.canDropOn(modelData.path)
+                    onEntered: function(drag) { drag.accepted = true; }
+                    onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: pinDropRow.containsDrag
+                        radius: root.effectiveRadius
+                        color: KappaTheme.tint10
+                        border.width: 1
+                        border.color: KappaTheme.sun
+                    }
+                }
+
                 MouseArea {
                     id: pinMouse
                     anchors.fill: parent
@@ -287,9 +366,13 @@ Rectangle {
             model: root.devicesList
 
             delegate: Rectangle {
+                id: devDelegate
                 required property var modelData
+                // Disco local montado: mostra o uso (barra + números) sob o nome
+                readonly property bool hasUsage: modelData.total_bytes !== undefined && modelData.total_bytes > 0
+                readonly property real usedFraction: hasUsage ? Math.min(1, modelData.used_bytes / modelData.total_bytes) : 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: 36
+                Layout.preferredHeight: hasUsage ? 56 : 36
                 radius: root.effectiveRadius
                 color: {
                     if (root.currentPath === modelData.path) {
@@ -305,6 +388,25 @@ Rectangle {
                     width: 2
                     color: KappaTheme.sun
                     visible: root.currentPath === modelData.path
+                }
+
+                // Soltar arquivos do Kappa aqui: pergunta se copia ou move para esta pasta
+                DropArea {
+                    id: devDrop
+                    z: 5
+                    anchors.fill: parent
+                    keys: ["text/uri-list"]
+                    enabled: !modelData.is_network && modelData.is_mounted && root.canDropOn(modelData.path)
+                    onEntered: function(drag) { drag.accepted = true; }
+                    onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: devDrop.containsDrag
+                        radius: root.effectiveRadius
+                        color: KappaTheme.tint10
+                        border.width: 1
+                        border.color: KappaTheme.sun
+                    }
                 }
 
                 MouseArea {
@@ -329,8 +431,62 @@ Rectangle {
                     }
                 }
 
+                // Uso do disco: barra fina e "usado / total · %"
+                ColumnLayout {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    anchors.bottomMargin: 8
+                    spacing: 4
+                    visible: devDelegate.hasUsage
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 4
+                        radius: Math.min(2, root.effectiveRadius)
+                        color: KappaTheme.line
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            width: Math.max(devDelegate.usedFraction > 0 ? 2 : 0, parent.width * devDelegate.usedFraction)
+                            radius: parent.radius
+                            color: devDelegate.usedFraction >= 0.9 ? KappaTheme.sun : KappaTheme.inkDim
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                            textFormat: Text.PlainText
+                            Layout.fillWidth: true
+                            text: devDelegate.hasUsage ? (root.formatBytes(devDelegate.modelData.used_bytes) + " / " + root.formatBytes(devDelegate.modelData.total_bytes)) : ""
+                            font.family: Tokens.mono
+                            font.pixelSize: 10
+                            color: KappaTheme.inkFaint
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            textFormat: Text.PlainText
+                            text: Math.round(devDelegate.usedFraction * 100) + "%"
+                            font.family: Tokens.mono
+                            font.pixelSize: 10
+                            color: devDelegate.usedFraction >= 0.9 ? KappaTheme.sun : KappaTheme.inkDim
+                        }
+                    }
+                }
+
                 RowLayout {
-                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: 36
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
                     spacing: 12
@@ -473,6 +629,25 @@ Rectangle {
                     width: 2
                     color: KappaTheme.sun
                     visible: cloudItem.active
+                }
+
+                // Soltar arquivos do Kappa aqui: pergunta se copia ou move para esta pasta
+                DropArea {
+                    id: cloudDrop
+                    z: 5
+                    anchors.fill: parent
+                    keys: ["text/uri-list"]
+                    enabled: modelData.mounted === true && root.canDropOn(modelData.path)
+                    onEntered: function(drag) { drag.accepted = true; }
+                    onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: cloudDrop.containsDrag
+                        radius: root.effectiveRadius
+                        color: KappaTheme.tint10
+                        border.width: 1
+                        border.color: KappaTheme.sun
+                    }
                 }
 
                 MouseArea {

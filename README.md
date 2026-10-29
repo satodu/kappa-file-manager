@@ -6,7 +6,7 @@
 
 A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
 
-> Version **0.1.5**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
+> Version **0.1.6**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
 
 Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's best ideas (transparent device browsing, KIO-Fuse, KDE Connect integration, XDG places, a clean separation of model and view) and rebuilds them from scratch on a fast **Rust 2024** core, wearing the Ryoku design system.
 
@@ -37,7 +37,11 @@ Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's b
 - **Multi-selection:** `Ctrl+click` toggles, `Shift+click` and `Shift+arrows` select ranges, `Ctrl+A` selects everything. Copy, cut, paste and delete act on every selected item.
 - **Transfers with progress:** copy and move show a progress card with speed and time remaining, can be paused, and can be cancelled with `Esc`, including for multi-gigabyte files.
 - **Compress and extract:** the context menu compresses the selection to `.zip` or `.tar.gz` and extracts `.zip`, `.tar`, `.tar.gz` and `.tgz` into a new folder, with the same progress card. Extraction is hardened against zip-slip, hostile links and decompression bombs (see [SECURITY.md](SECURITY.md)).
-- **Drag out:** drag a file (or a multi-selection) from Kappa into a terminal, chat or editor to hand over its location.
+- **Drag out:** drag a file (or a multi-selection) from Kappa into a terminal, chat or editor to hand over its location. A card with the file name (and a count for several files) follows the pointer, the dragged items fade, and a pill shows how many are in the air.
+- **Drop to copy or move:** drop files on a folder, on the background of a pane (handy in split view) or on a sidebar entry and Kappa asks *Copy or move?* (`C`, `M`, `Esc`; `Enter` does nothing). Only drags that started in Kappa are accepted.
+- **Open with:** the context menu lists the applications registered for the file type (the system default first) and *Other application...* searches every installed one. Apps are launched with `gio launch`, never through a shell.
+- **Disk usage:** local drives in the sidebar show a usage bar with used and total space and the percentage.
+- **Default file manager:** `kappa-file-manager --set-default` makes folders and "Show in folder" from other apps open in Kappa (`org.freedesktop.FileManager1`), and `--unset-default` goes back. Kappa also takes a folder, file or `file://` URI as an argument.
 - **Safe opening:** opening a script, program or `.desktop` launcher asks for confirmation first, judged by the file content and not only its name.
 - **Safe deletion:** `Del` opens a confirmation and moves items to the trash; `Shift+Del` deletes permanently after an explicit confirmation.
 - **Usable path bar:** click an empty area or press `Ctrl+L` to type a path, with suggestions, `Tab` completion and a clear message for paths that do not exist. In narrow windows the first levels fold into a `…` menu and the editing field grows over the neighbouring buttons.
@@ -97,7 +101,16 @@ cd kappa-file-manager/packaging/aur
 makepkg -si
 ```
 
-Then start **Kappa** from your launcher, or run `kappa-file-manager`.
+Then start **Kappa** from your launcher, or run `kappa-file-manager`. It also takes a folder, a file or a `file://` URI: `kappa-file-manager ~/Downloads` opens there, and a file is selected in its folder.
+
+### Make Kappa your default file manager
+
+```bash
+kappa-file-manager --set-default     # folders open in Kappa; "Show in folder" from other apps too
+kappa-file-manager --unset-default   # back to the previous one
+```
+
+This only touches your own profile: it sets `inode/directory` with `xdg-mime` (remembering the previous default in `~/.config/kappa/previous-default`) and adds a user D-Bus service for `org.freedesktop.FileManager1` in `~/.local/share/dbus-1/services/`. A file manager that is already running keeps answering until you close it. This covers folders and "Show in folder"; it does not replace the open/save dialogs of other apps.
 
 ### Run from source
 
@@ -118,7 +131,7 @@ The interface finds the backend through `KAPPA_BACKEND` and falls back to `targe
 
 ### Known limitations
 
-- The battery, network and storage figures on the KDE Connect device screen are placeholder values taken from the design; actions such as ping and ring call the real `kdeconnect-cli`.
+- The KDE Connect device screen shows the live battery (with charging state) and cellular network (type and signal), refreshed every 5 seconds from `kdeconnectd` over D-Bus. KDE Connect exposes no storage size, so that card only tells whether the phone is mounted. Actions such as ping and ring call the real `kdeconnect-cli`.
 - Archive support covers `.zip`, `.tar`, `.tar.gz` and `.tgz`; password-protected zips and other formats (`.7z`, `.rar`, `.tar.xz`) are not supported yet.
 - "Open terminal here" uses `$TERMINAL` or the first terminal it finds (`ghostty`, `kitty`, `alacritty`, `foot`, `konsole`, `xterm`).
 

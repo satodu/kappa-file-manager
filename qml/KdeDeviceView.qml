@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Io
 import Ryoku.Ui.Singletons
 
 Item {
@@ -8,6 +9,38 @@ Item {
     property var device: null
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
+
+    // Estado ao vivo do celular (bateria, rede, montagem), lido do KDE Connect a cada poucos segundos
+    property var status: ({})
+    readonly property var battery: root.status.battery || null
+    readonly property var network: root.status.network || null
+
+    function refreshStatus() {
+        if (!root.device || !root.device.id || statusProc.running) return;
+        statusProc.command = [app.backendBin, "--kde-status-json", root.device.id];
+        statusProc.running = true;
+    }
+    onDeviceChanged: { root.status = ({}); root.refreshStatus(); }
+
+    Process {
+        id: statusProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var data = JSON.parse(this.text);
+                    if (data.ok) root.status = data;
+                } catch (e) {}
+            }
+        }
+    }
+
+    Timer {
+        interval: 5000
+        repeat: true
+        running: root.visible && root.device !== null
+        triggeredOnStart: true
+        onTriggered: root.refreshStatus()
+    }
 
     signal actionRequested(string action, string devId)
     signal folderOpened(string folderPath)
@@ -187,7 +220,7 @@ Item {
 
                     Text {
                         textFormat: Text.PlainText
-                        text: "85 %"
+                        text: root.battery ? (root.battery.charge + " %") : "—"
                         font.family: Tokens.display
                         font.pixelSize: 24
                         font.bold: true
@@ -196,7 +229,8 @@ Item {
 
                     Text {
                         textFormat: Text.PlainText
-                        text: root.isPt ? "Descarregando · ~8 h restantes" : "Discharging · ~8 h remaining"
+                        text: !root.battery ? (root.isPt ? "Sem dados" : "No data")
+                            : (root.battery.charging ? (root.isPt ? "Carregando" : "Charging") : (root.isPt ? "Descarregando" : "Discharging"))
                         font.family: Tokens.ui
                         font.pixelSize: 11
                         color: KappaTheme.inkDim
@@ -209,7 +243,7 @@ Item {
                         color: KappaTheme.tint10
 
                         Rectangle {
-                            width: parent.width * 0.85
+                            width: parent.width * (root.battery ? root.battery.charge / 100 : 0)
                             height: parent.height
                             radius: root.effectiveRadius
                             color: KappaTheme.sun
@@ -242,7 +276,7 @@ Item {
 
                     Text {
                         textFormat: Text.PlainText
-                        text: "Wi-Fi"
+                        text: root.network ? root.network.type : "—"
                         font.family: Tokens.display
                         font.pixelSize: 24
                         font.bold: true
@@ -251,7 +285,7 @@ Item {
 
                     Text {
                         textFormat: Text.PlainText
-                        text: "192.168.0.12 · 5 GHz"
+                        text: root.network ? ((root.isPt ? "Sinal " : "Signal ") + root.network.strength + "/4") : (root.isPt ? "Sem dados" : "No data")
                         font.family: Tokens.mono
                         font.pixelSize: 11
                         color: KappaTheme.inkDim
@@ -285,7 +319,7 @@ Item {
 
                     Text {
                         textFormat: Text.PlainText
-                        text: "128 / 512 GB"
+                        text: root.status.mounted ? (root.isPt ? "Montado" : "Mounted") : (root.isPt ? "Não montado" : "Not mounted")
                         font.family: Tokens.display
                         font.pixelSize: 24
                         font.bold: true
@@ -294,7 +328,7 @@ Item {
 
                     Text {
                         textFormat: Text.PlainText
-                        text: root.isPt ? "384 GB livres" : "384 GB free"
+                        text: root.isPt ? "via SFTP · use Montar" : "via SFTP · use Mount"
                         font.family: Tokens.ui
                         font.pixelSize: 11
                         color: KappaTheme.inkDim
@@ -307,7 +341,7 @@ Item {
                         color: KappaTheme.tint10
 
                         Rectangle {
-                            width: parent.width * 0.25
+                            width: root.status.mounted ? parent.width : 0
                             height: parent.height
                             radius: root.effectiveRadius
                             color: KappaTheme.ink

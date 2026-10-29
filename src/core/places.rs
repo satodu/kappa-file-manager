@@ -38,6 +38,48 @@ struct LsblkOutput {
 
 pub struct Places;
 
+/// Total e usado, em bytes, a partir dos campos de `statvfs` (como o `df`: usado = blocos - blocos livres)
+pub fn usage_from_blocks(blocks: u64, bfree: u64, frsize: u64) -> Option<(u64, u64)> {
+    let total = blocks.checked_mul(frsize)?;
+    if total == 0 || bfree > blocks {
+        return None;
+    }
+    Some((total, total - bfree * frsize))
+}
+
+/// Uso do sistema de arquivos montado em `path`. Só para discos locais: um compartilhamento de rede travado
+/// bloquearia o `statvfs`.
+pub fn disk_usage(path: &std::path::Path) -> Option<(u64, u64)> {
+    use std::os::unix::ffi::OsStrExt;
+    let c = std::ffi::CString::new(path.as_os_str().as_bytes()).ok()?;
+    let mut st: libc::statvfs = unsafe { std::mem::zeroed() };
+    if unsafe { libc::statvfs(c.as_ptr(), &mut st) } != 0 {
+        return None;
+    }
+    usage_from_blocks(st.f_blocks as u64, st.f_bfree as u64, st.f_frsize as u64)
+}
+
+#[cfg(test)]
+mod usage_tests {
+    use super::*;
+
+    #[test]
+    fn usage_matches_df_semantics() {
+        assert_eq!(usage_from_blocks(1000, 250, 4096), Some((4_096_000, 3_072_000)));
+        assert_eq!(usage_from_blocks(1000, 1000, 4096), Some((4_096_000, 0)));
+        assert_eq!(usage_from_blocks(0, 0, 4096), None);
+        assert_eq!(usage_from_blocks(10, 11, 4096), None);
+        assert_eq!(usage_from_blocks(u64::MAX, 0, 2), None);
+    }
+
+    #[test]
+    fn root_has_usage() {
+        let (total, used) = disk_usage(std::path::Path::new("/")).unwrap();
+        assert!(total > 0 && used <= total);
+        assert!(disk_usage(std::path::Path::new("/nao/existe/kappa")).is_none());
+    }
+}
+
 impl Places {
     /// Detecta se o Ryoku está configurado em inglês ou português
     fn is_english_locale() -> bool {

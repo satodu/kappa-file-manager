@@ -1,6 +1,24 @@
 #!/bin/sh
 # Launcher for Kappa File Manager: starts the QML interface with the installed Rust backend.
+# Usage: kappa-file-manager [folder | file | file:// URI]     open there (a file selects it in its folder)
+#        kappa-file-manager --set-default | --unset-default   default file manager for this user
 export QS_APP_ID="${QS_APP_ID:-kappa-file-manager}"
 export KAPPA_BACKEND="${KAPPA_BACKEND:-/usr/lib/kappa-file-manager/kappa-file-manager}"
 export QT_PLUGIN_PATH="/usr/lib/qt6/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+
+case "$1" in
+  --set-default|--unset-default) exec "$KAPPA_BACKEND" "$1" ;;
+  -*|"") ;;
+  *)
+    # The backend validates the target (local paths only) and answers with two lines: folder, item to select
+    if out=$("$KAPPA_BACKEND" --start-from "$1" 2>/dev/null); then
+      start=$(printf '%s\n' "$out" | sed -n 1p)
+      select=$(printf '%s\n' "$out" | sed -n 2p)
+      export KAPPA_START="$start"
+      [ -n "$select" ] && export KAPPA_SELECT="$select"
+    fi
+    shift
+    ;;
+esac
+
 exec quickshell -p /usr/share/kappa-file-manager/qml/shell.qml "$@"

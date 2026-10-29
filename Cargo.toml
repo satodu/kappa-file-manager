@@ -1,6 +1,6 @@
 [package]
 name = "kappa-file-manager"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 description = "Brutalist file manager for Ryoku OS: Rust core with a Quickshell (QML) interface"
 license = "0BSD"
@@ -21,4 +21,5 @@ thiserror = "2.0.21"
 tokio = { version = "1.54.0", features = ["full"] }
 trash = "5.2.9"
 walkdir = "2.5.0"
+zbus = { version = "6.1.0", default-features = false, features = ["tokio", "service", "proxy"] }
 zip = { version = "9.0.5", default-features = false, features = ["deflate"] }

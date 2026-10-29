@@ -76,7 +76,20 @@ async fn main() {
             }
             "--places-json" => {
                 let standard = Places::get_standard_places();
-                let devices = Places::get_devices();
+                // Uso do disco (total/usado) só para discos locais montados; rede (KDE Connect) fica de fora
+                let devices: Vec<serde_json::Value> = Places::get_devices()
+                    .into_iter()
+                    .map(|d| {
+                        let mut v = serde_json::to_value(&d).unwrap_or_default();
+                        if d.is_mounted && !d.is_network {
+                            if let Some((total, used)) = core::places::disk_usage(&d.path) {
+                                v["total_bytes"] = total.into();
+                                v["used_bytes"] = used.into();
+                            }
+                        }
+                        v
+                    })
+                    .collect();
                 let json = serde_json::json!({
                     "places": standard,
                     "devices": devices,
@@ -164,6 +177,58 @@ async fn main() {
                         Ok(true) => println!("{}", serde_json::json!({ "ok": true })),
                         Ok(false) => {}
                         Err(e) => println!("{}", serde_json::json!({ "ok": false, "error": format!("Erro ao abrir arquivo: {}", e) })),
+                    }
+                }
+                return;
+            }
+            "--kde-status-json" => {
+                // --kde-status-json <id>: bateria, rede celular e montagem de um dispositivo KDE Connect (só leitura)
+                let id = args.get(2).map(|s| s.as_str()).unwrap_or("");
+                println!("{}", ops::kdestatus::status(id).await);
+                return;
+            }
+            "--start-from" => {
+                // --start-from <pasta|arquivo|file://…>: duas linhas (pasta a abrir, item a selecionar) para o launcher
+                match args.get(2).map(|a| ops::integration::start_from(a)) {
+                    Some(Ok(lines)) => print!("{}", lines),
+                    _ => std::process::exit(1),
+                }
+                return;
+            }
+            "--dbus-service" => {
+                // Serviço org.freedesktop.FileManager1 (ativado pelo D-Bus; sai sozinho quando ocioso)
+                if let Err(e) = ops::integration::run_dbus_service().await {
+                    eprintln!("Kappa: serviço D-Bus encerrado: {}", e);
+                    std::process::exit(1);
+                }
+                return;
+            }
+            "--set-default" | "--unset-default" => {
+                let result = if args[1] == "--set-default" { ops::integration::set_default() } else { ops::integration::unset_default() };
+                match result {
+                    Ok(msg) => println!("{}", msg),
+                    Err(e) => {
+                        eprintln!("Erro: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+                return;
+            }
+            "--open-with-json" => {
+                // --open-with-json <path> [--all]: apps do tipo do arquivo (padrão primeiro) ou todos os instalados
+                let all = args.iter().skip(3).any(|a| a == "--all");
+                match args.get(2) {
+                    Some(target) => println!("{}", ops::openwith::list_json(target, all)),
+                    None => println!("{}", serde_json::json!({ "ok": false, "error": "Caminho ausente", "apps": [] })),
+                }
+                return;
+            }
+            "--open-with" => {
+                // --open-with <id.desktop> <path>
+                if let (Some(id), Some(target)) = (args.get(2), args.get(3)) {
+                    match ops::openwith::open_with(id, target) {
+                        Ok(()) => println!("{}", serde_json::json!({ "ok": true })),
+                        Err(e) => println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() })),
                     }
                 }
                 return;

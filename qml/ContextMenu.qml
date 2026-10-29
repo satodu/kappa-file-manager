@@ -12,6 +12,10 @@ Item {
     property real menuX: 0
     property real menuY: 0
     property bool showSendSubmenu: false
+    property bool showOpenWithSubmenu: false
+    property var openWithApps: []
+    property bool openWithLoading: false
+    property real openWithY: 0
 
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property bool isAudio: root.targetItem && root.targetItem.kind === "audio"
@@ -25,6 +29,9 @@ Item {
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
 
     signal openTriggered(var item)
+    signal openWithListRequested(var item)
+    signal openWithTriggered(var item, string appId)
+    signal openWithOtherTriggered(var item)
     signal openNewTabTriggered(var item)
     signal openTerminalTriggered(var item)
     signal playRyotunesTriggered(var item)
@@ -46,6 +53,8 @@ Item {
         root.targetItem = item;
         root.devicesList = devices || [];
         root.showSendSubmenu = false;
+        root.showOpenWithSubmenu = false;
+        root.openWithApps = [];
         var estHeight = root.isAudio ? 500 : (root.isFolderContext ? 305 : 520);
         var clampX = Math.min(posX, root.width - root.menuWidth - 16);
         var clampY = Math.min(posY, root.height - estHeight - 16);
@@ -54,9 +63,22 @@ Item {
         root.visible = true;
     }
 
+    function toggleOpenWith(row, on) {
+        root.showSendSubmenu = false;
+        if (!on) { root.showOpenWithSubmenu = false; return; }
+        if (!root.showOpenWithSubmenu) {
+            root.openWithApps = [];
+            root.openWithLoading = true;
+            root.openWithListRequested(root.targetItem);
+        }
+        root.openWithY = row.mapToItem(root, 0, 0).y;
+        root.showOpenWithSubmenu = true;
+    }
+
     function hide() {
         root.visible = false;
         root.showSendSubmenu = false;
+        root.showOpenWithSubmenu = false;
         root.targetItem = null;
     }
 
@@ -301,7 +323,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 32
                     radius: root.effectiveRadius
-                    color: openWithMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+                    color: (openWithMouse.containsMouse || root.showOpenWithSubmenu) ? KappaTheme.tint10 : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
@@ -340,7 +362,8 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: { root.openTriggered(root.targetItem); root.hide(); }
+                        onEntered: root.toggleOpenWith(parent, true)
+                        onClicked: root.toggleOpenWith(parent, !root.showOpenWithSubmenu)
                     }
                 }
             }
@@ -481,6 +504,35 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: { root.openNewTabTriggered(root.targetItem); root.hide(); }
+                    }
+                }
+
+                // 2b. Abrir com › (lista de aplicativos do tipo do arquivo)
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 32
+                    radius: root.effectiveRadius
+                    visible: !root.isFolderContext
+                    color: (openWithNormalMouse.containsMouse || root.showOpenWithSubmenu) ? KappaTheme.tint10 : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 10
+
+                        Text { textFormat: Text.PlainText; text: "󰈔"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
+                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: root.isPt ? "Abrir com" : "Open with"; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
+                        Text { textFormat: Text.PlainText; text: "›"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
+                    }
+
+                    MouseArea {
+                        id: openWithNormalMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: root.toggleOpenWith(parent, true)
+                        onClicked: root.toggleOpenWith(parent, !root.showOpenWithSubmenu)
                     }
                 }
 
@@ -951,7 +1003,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onEntered: root.showSendSubmenu = true
+                    onEntered: { root.showOpenWithSubmenu = false; root.showSendSubmenu = true; }
                     onClicked: root.showSendSubmenu = !root.showSendSubmenu
                 }
             }
@@ -1422,6 +1474,136 @@ Item {
                         root.copyPathTriggered(root.targetItem);
                         root.hide();
                     }
+                }
+            }
+        }
+    }
+
+    // Submenu "Abrir com": aplicativos registrados para o tipo (o padrão vem primeiro)
+    MultiEffect {
+        source: openWithBox
+        anchors.fill: openWithBox
+        shadowEnabled: true
+        shadowColor: Qt.rgba(0, 0, 0, 0.65)
+        shadowVerticalOffset: 14
+        shadowHorizontalOffset: 0
+        shadowBlur: 0.8
+        visible: root.showOpenWithSubmenu
+        z: 3
+    }
+
+    Rectangle {
+        id: openWithBox
+        x: {
+            var preferredX = menuBox.x + menuBox.width + 4;
+            return (preferredX + 260 > root.width - 16) ? menuBox.x - 264 : preferredX;
+        }
+        y: Math.max(16, Math.min(root.openWithY - 6, root.height - openWithLayout.implicitHeight - 24))
+        width: 260
+        implicitHeight: openWithLayout.implicitHeight + 12
+        radius: root.effectiveRadius
+        color: KappaTheme.paperLift
+        border.width: 1
+        border.color: KappaTheme.lineStrong
+        visible: root.showOpenWithSubmenu
+        z: 4
+
+        ColumnLayout {
+            id: openWithLayout
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 0
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 20
+                Layout.leftMargin: 4
+                Layout.rightMargin: 4
+                spacing: 8
+
+                Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
+                Text { textFormat: Text.PlainText; text: root.isPt ? "ABRIR COM_" : "OPEN WITH_"; font.family: Tokens.ui; font.pixelSize: 11; font.bold: true; color: KappaTheme.inkDim }
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: KappaTheme.line
+                    Rectangle { anchors.right: parent.right; anchors.top: parent.top; width: 1; height: 5; color: KappaTheme.lineStrong }
+                }
+            }
+
+            Text {
+                textFormat: Text.PlainText
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                Layout.leftMargin: 10
+                verticalAlignment: Text.AlignVCenter
+                visible: root.openWithApps.length === 0
+                text: root.openWithLoading ? "…" : (root.isPt ? "Nenhum aplicativo encontrado" : "No applications found")
+                font.family: Tokens.ui
+                font.pixelSize: 13
+                color: KappaTheme.inkFaint
+            }
+
+            Repeater {
+                model: root.openWithApps
+
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 32
+                    radius: root.effectiveRadius
+                    color: appMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 10
+
+                        Text { textFormat: Text.PlainText; text: "󰀻"; font.family: Tokens.mono; font.pixelSize: 13; color: index === 0 ? KappaTheme.sun : KappaTheme.inkDim }
+                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: modelData.name; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; visible: index === 0; text: root.isPt ? "padrão" : "default"; font.family: Tokens.mono; font.pixelSize: 10; color: KappaTheme.inkFaint }
+                    }
+
+                    MouseArea {
+                        id: appMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { root.openWithTriggered(root.targetItem, modelData.id); root.hide(); }
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 9
+                visible: root.openWithApps.length > 0
+                Rectangle { anchors.centerIn: parent; width: parent.width; height: 1; color: KappaTheme.line }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                radius: root.effectiveRadius
+                color: otherMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 10
+                    Text { textFormat: Text.PlainText; text: "󰍉"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
+                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: root.isPt ? "Outro aplicativo…" : "Other application…"; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink }
+                }
+
+                MouseArea {
+                    id: otherMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { var it = root.targetItem; root.hide(); root.openWithOtherTriggered(it); }
                 }
             }
         }
