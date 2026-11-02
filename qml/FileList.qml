@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Shapes
 import Ryoku.Ui.Singletons
 
 Item {
@@ -772,26 +773,59 @@ Item {
                 }
             }
 
-            // Ticks técnicos de calibração nos 4 cantos quando selecionado (Nó 919 do Figcraft)
-            Item {
+            // Ticks técnicos de calibração nos 4 cantos quando selecionado (Nó 919 do Figcraft):
+            // cada canto é um arco que acompanha o radius do card (L reto saía para fora da curva)
+            Shape {
+                id: cornerTicks
                 anchors.fill: parent
                 visible: tileBox.isSelected
+                preferredRendererType: Shape.CurveRenderer
+                readonly property real o: 0.5
+                readonly property real r: Math.max(0, Math.min(tileBox.radius, 30) - 0.5)
+                readonly property real len: 7
+                readonly property real w: width
+                readonly property real h: height
 
-                // Canto Superior Esquerdo
-                Rectangle { x: 0; y: 0; width: 7; height: 1; color: KappaTheme.sun }
-                Rectangle { x: 0; y: 0; width: 1; height: 7; color: KappaTheme.sun }
-
-                // Canto Superior Direito
-                Rectangle { x: parent.width - 7; y: 0; width: 7; height: 1; color: KappaTheme.sun }
-                Rectangle { x: parent.width - 1; y: 0; width: 1; height: 7; color: KappaTheme.sun }
-
-                // Canto Inferior Esquerdo
-                Rectangle { x: 0; y: parent.height - 1; width: 7; height: 1; color: KappaTheme.sun }
-                Rectangle { x: 0; y: parent.height - 7; width: 1; height: 7; color: KappaTheme.sun }
-
-                // Canto Inferior Direito
-                Rectangle { x: parent.width - 7; y: parent.height - 1; width: 7; height: 1; color: KappaTheme.sun }
-                Rectangle { x: parent.width - 1; y: parent.height - 7; width: 1; height: 7; color: KappaTheme.sun }
+                ShapePath {
+                    strokeColor: KappaTheme.sun
+                    strokeWidth: 1
+                    fillColor: "transparent"
+                    startX: cornerTicks.o
+                    startY: cornerTicks.o + cornerTicks.r + cornerTicks.len
+                    PathLine { x: cornerTicks.o; y: cornerTicks.o + cornerTicks.r }
+                    PathArc { x: cornerTicks.o + cornerTicks.r; y: cornerTicks.o; radiusX: cornerTicks.r; radiusY: cornerTicks.r; direction: PathArc.Clockwise }
+                    PathLine { x: cornerTicks.o + cornerTicks.r + cornerTicks.len; y: cornerTicks.o }
+                }
+                ShapePath {
+                    strokeColor: KappaTheme.sun
+                    strokeWidth: 1
+                    fillColor: "transparent"
+                    startX: cornerTicks.w - cornerTicks.o - cornerTicks.r - cornerTicks.len
+                    startY: cornerTicks.o
+                    PathLine { x: cornerTicks.w - cornerTicks.o - cornerTicks.r; y: cornerTicks.o }
+                    PathArc { x: cornerTicks.w - cornerTicks.o; y: cornerTicks.o + cornerTicks.r; radiusX: cornerTicks.r; radiusY: cornerTicks.r; direction: PathArc.Clockwise }
+                    PathLine { x: cornerTicks.w - cornerTicks.o; y: cornerTicks.o + cornerTicks.r + cornerTicks.len }
+                }
+                ShapePath {
+                    strokeColor: KappaTheme.sun
+                    strokeWidth: 1
+                    fillColor: "transparent"
+                    startX: cornerTicks.w - cornerTicks.o
+                    startY: cornerTicks.h - cornerTicks.o - cornerTicks.r - cornerTicks.len
+                    PathLine { x: cornerTicks.w - cornerTicks.o; y: cornerTicks.h - cornerTicks.o - cornerTicks.r }
+                    PathArc { x: cornerTicks.w - cornerTicks.o - cornerTicks.r; y: cornerTicks.h - cornerTicks.o; radiusX: cornerTicks.r; radiusY: cornerTicks.r; direction: PathArc.Clockwise }
+                    PathLine { x: cornerTicks.w - cornerTicks.o - cornerTicks.r - cornerTicks.len; y: cornerTicks.h - cornerTicks.o }
+                }
+                ShapePath {
+                    strokeColor: KappaTheme.sun
+                    strokeWidth: 1
+                    fillColor: "transparent"
+                    startX: cornerTicks.o + cornerTicks.r + cornerTicks.len
+                    startY: cornerTicks.h - cornerTicks.o
+                    PathLine { x: cornerTicks.o + cornerTicks.r; y: cornerTicks.h - cornerTicks.o }
+                    PathArc { x: cornerTicks.o; y: cornerTicks.h - cornerTicks.o - cornerTicks.r; radiusX: cornerTicks.r; radiusY: cornerTicks.r; direction: PathArc.Clockwise }
+                    PathLine { x: cornerTicks.o; y: cornerTicks.h - cornerTicks.o - cornerTicks.r - cornerTicks.len }
+                }
             }
 
             ColumnLayout {

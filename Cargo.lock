@@ -313,7 +313,7 @@ dependencies = [
 
 [[package]]
 name = "kappa-file-manager"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "chrono",
  "dirs",
