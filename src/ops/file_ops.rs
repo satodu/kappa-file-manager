@@ -183,6 +183,9 @@ impl FileOperations {
         if super::cloud::is_cloud_path(p) {
             return Err(trash::Error::Unknown { description: "Na nuvem não há lixeira do Kappa: use a exclusão permanente (vai para a lixeira do provedor)".into() });
         }
+        if super::ssh::is_ssh_path(p) {
+            return Err(trash::Error::Unknown { description: "Em servidores SSH não há lixeira do Kappa: use a exclusão permanente".into() });
+        }
         if std::fs::symlink_metadata(p).map(|m| m.is_dir()).unwrap_or(false) && contains_mount(p) {
             return Err(trash::Error::Unknown { description: "A pasta contém um ponto de montagem (disco ou compartilhamento) e não será removida".into() });
         }

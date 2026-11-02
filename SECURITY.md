@@ -65,11 +65,21 @@ Kappa is a file manager, so it handles untrusted names, links, paths and archive
 - Writing needs rclone's write cache. It lives in `$XDG_RUNTIME_DIR/kappa/cloud-cache/<remote>` (`0700`, RAM-backed, gone on reboot, entries expire after 15 minutes, soft cap 2 GiB), so nothing from the cloud is stored on disk across sessions. A very large upload can use that much memory.
 - Deleting on a cloud mount is always the permanent-delete confirmation (Kappa has no trash there, and the backend refuses `--trash` on cloud paths so a file is never silently downloaded into your local trash). The dialog says the items are deleted in the cloud; the provider may keep them in its own trash.
 - The existing mount-point guards (`contains_mount`) still stop Kappa from deleting or moving a folder that contains a cloud mount.
+
+**SSH servers (sshfs)**
+- Kappa has no SSH code. If `sshfs` is installed, it mounts `user@host[:port]` with `sshfs` and the system OpenSSH, so keys, `ssh-agent`, `~/.ssh/config` and `known_hosts` stay with OpenSSH. Mounting uses `StrictHostKeyChecking=yes`: an unknown or changed host key is refused, and you confirm it yourself with `ssh user@host`.
+- The target is validated before it reaches any command: user `[A-Za-z0-9._-]` (up to 64), host `[A-Za-z0-9.-]` (up to 253, IPv4 or a name, no IPv6), port 1-65535, each starting and ending with a letter or digit. It can never start with `-`, so it cannot become an `ssh` or `sshfs` option, and the mount folder name (`user@host[:port]`) is unique per target.
+- Without a password Kappa runs `sshfs` with `BatchMode=yes` (key or agent only, never waits for input). With a password, the dialog sends it to the backend on stdin and the backend passes it to `sshfs` on stdin (`password_stdin`). It is never in an argument, a file, a log or the saved list, and the field is cleared after sending (1 KiB cap, one line, no NUL).
+- The saved list is only the targets, in `~/.config/kappa/servers.json` (`0600`, up to 32, rewritten atomically, invalid entries dropped on read). Kappa does not keep browsing history. Forgetting a server is refused while it is mounted.
+- When `sshfs` fails it hides the real reason, so Kappa re-runs a non-interactive `ssh ... true` and only reports a class (`HostKey`, `Auth`, `Network`, `Other`); server text is never shown.
+- Mount points are private `0700` folders under `$XDG_RUNTIME_DIR/kappa/ssh/`, checked to be empty real directories before mounting, with `umask=077`. Deleting is always the permanent-delete confirmation and `--trash` refuses SSH paths, like the cloud.
+- A hostile server can create symlinks whose targets point to files on your machine. Kappa lists with `lstat`, previews require a regular file, and opening uses `O_NOFOLLOW`, so it does not follow them; other programs you open files with might.
+- Plain FTP is not supported (it is unencrypted). FTP/FTPS would be a separate feature.
 - A slow or hung remote can make a listing wait (the same limit as any network mount); mounting gives up after 60 seconds.
 
 **Logs, history and caches**
 - Kappa keeps no history: no recent files, no search history, no remembered tabs. The one thing it remembers is the last folder, so it can reopen there: a single path in `~/.config/kappa/state.json` (directory `0700`), overwritten on each navigation, validated as a plain absolute path on load, ignored if the folder is gone, and never read or written when `KAPPA_START` is set. Thumbnails are decoded in memory and never written to `~/.cache/thumbnails` or anywhere else.
-- The only files Kappa writes are in `~/.config/kappa/`: `theme.json` (colour settings), `state.json` (the last folder) and `places.json` (pinned folders). Cloud mount points and rclone's write cache live under `$XDG_RUNTIME_DIR/kappa/` (RAM, `0700`).
+- The only files Kappa writes are in `~/.config/kappa/`: `theme.json` (colour settings), `state.json` (the last folder) and `places.json` (pinned folders) and `servers.json` (SSH targets, no passwords). Cloud mount points and rclone's write cache live under `$XDG_RUNTIME_DIR/kappa/` (RAM, `0700`).
 - Error messages shown in the app are not logged by Kappa itself. Qt/Quickshell warnings go to a log under `/run/user/<uid>/` (RAM, readable only by you).
 
 **Drag and drop, clipboard and URIs**

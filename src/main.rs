@@ -398,6 +398,46 @@ async fn main() {
                 }
                 return;
             }
+            "--ssh-json" => {
+                println!("{}", ops::ssh::list());
+                return;
+            }
+            "--ssh-mount" => {
+                let target = args.get(2).map(String::as_str).unwrap_or("");
+                // A senha só vem pelo stdin (nunca por argumento) e só quando pedida
+                let password = if args.iter().any(|a| a == "--password-stdin") {
+                    match ops::ssh::read_password(std::io::stdin().lock()) {
+                        Ok(p) => p,
+                        Err(e) => {
+                            println!("{}", serde_json::json!({ "ok": false, "kind": "Invalid", "error": e.to_string() }));
+                            return;
+                        }
+                    }
+                } else {
+                    String::new()
+                };
+                match ops::ssh::mount(target, &password) {
+                    Ok(p) => println!("{}", serde_json::json!({ "ok": true, "path": p })),
+                    Err(e) => println!("{}", serde_json::json!({ "ok": false, "kind": e.kind, "error": e.message })),
+                }
+                return;
+            }
+            "--ssh-unmount" => {
+                let target = args.get(2).map(String::as_str).unwrap_or("");
+                match ops::ssh::unmount(target) {
+                    Ok(()) => println!("{}", serde_json::json!({ "ok": true })),
+                    Err(e) => println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() })),
+                }
+                return;
+            }
+            "--ssh-forget" => {
+                let target = args.get(2).map(String::as_str).unwrap_or("");
+                match ops::ssh::forget(target) {
+                    Ok(()) => println!("{}", serde_json::json!({ "ok": true })),
+                    Err(e) => println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() })),
+                }
+                return;
+            }
             "--help" | "-h" => {
                 println!("Kappa File Manager Core");
                 println!("  --list-json <path> [--hidden]");
@@ -409,6 +449,7 @@ async fn main() {
                 println!("  --delete <path>   (exclusão permanente)\n  --trash <path>");
                 println!("  --mount-device <block_dev>");
                 println!("  --cloud-json | --cloud-mount <remote> | --cloud-unmount <remote>");
+                println!("  --ssh-json | --ssh-mount <user@host[:port]> [--password-stdin] | --ssh-unmount <alvo> | --ssh-forget <alvo>");
                 println!("  --eject-device <block_dev>");
                 println!("  --kde-share <dev_id> <path>");
                 println!("  --kde-ping <dev_id>");

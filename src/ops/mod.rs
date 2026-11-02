@@ -5,3 +5,4 @@ pub mod cloud;
 pub mod openwith;
 pub mod integration;
 pub mod kdestatus;
+pub mod ssh;

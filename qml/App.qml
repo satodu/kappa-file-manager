@@ -110,13 +110,14 @@ Rectangle {
     }
 
     // Atalhos de edição ficam desligados enquanto um campo de texto ou modal tem o foco
-    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showOpenWithModal && !app.showDropModal && !app.showDeleteModal && !app.showAppearance && !app.showConfirmModal && !app.anyPathEditing
+    readonly property bool shortcutsEnabled: !(titlebar && titlebar.isSearchFocused) && !app.showRenameModal && !app.showConnectModal && !app.showOpenWithModal && !app.showDropModal && !app.showDeleteModal && !app.showAppearance && !app.showConfirmModal && !app.anyPathEditing
 
     // Exibição de Arquivos Ocultos (Ctrl+H)
     property bool showHidden: false
 
     // Modal de Renomeação (F2)
     property bool showRenameModal: false
+    property bool showConnectModal: false
     property bool showOpenWithModal: false
     property var openWithTarget: null
     property var renameTargetItem: null
@@ -584,6 +585,121 @@ Rectangle {
                 app.refreshCloud();
             }
         }
+    }
+
+    // Servidores SSH (SFTP) via sshfs: o Kappa só lista alvos usuario@host[:porta] (sem senha) e monta/desmonta.
+    // Chaves, agent e known_hosts ficam com o OpenSSH; a senha opcional vai pelo stdin, nunca por argumento.
+    property var sshList: []
+    property bool sshAvailable: false
+    property string sshBusy: ""
+    property string sshUnmounting: ""
+    property string sshPendingPassword: ""
+    function refreshSsh() { sshProc.running = true; }
+    function openConnect(target, hint) {
+        app.showConnectModal = true;
+        connectModal.open(target || "", hint || "");
+    }
+    function sshClicked(server) {
+        if (app.sshBusy !== "") return;
+        if (server.mounted && server.path) { app.navigateAnyPane(server.path); return; }
+        app.sshConnect(server.name, "");
+    }
+    function sshConnect(target, password) {
+        if (app.sshBusy !== "") return;
+        app.sshBusy = target;
+        app.sshPendingPassword = password;
+        app.notify(app.isPt ? "Conectando a " + target + "…" : "Connecting to " + target + "…");
+        sshMountProc.command = password !== "" ? [app.backendBin, "--ssh-mount", target, "--password-stdin"] : [app.backendBin, "--ssh-mount", target];
+        sshMountProc.running = true;
+    }
+    function sshUnmount(name) {
+        if (app.sshUnmounting !== "") return;
+        app.sshUnmounting = name;
+        sshUnmountProc.command = [app.backendBin, "--ssh-unmount", name];
+        sshUnmountProc.running = true;
+    }
+    function sshForget(name) {
+        sshForgetProc.command = [app.backendBin, "--ssh-forget", name];
+        sshForgetProc.running = true;
+    }
+    Process {
+        id: sshProc
+        command: [app.backendBin, "--ssh-json"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var data = JSON.parse(this.text);
+                    app.sshAvailable = data.ok && data.available === true;
+                    app.sshList = data.ok ? (data.servers || []) : [];
+                } catch (e) { app.sshList = []; app.sshAvailable = false; }
+            }
+        }
+    }
+    Process {
+        id: sshMountProc
+        stdinEnabled: true
+        onStarted: {
+            if (app.sshPendingPassword !== "") {
+                sshMountProc.write(app.sshPendingPassword + "\n");
+                app.sshPendingPassword = "";
+            }
+        }
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var target = app.sshBusy;
+                var usedPassword = sshMountProc.command.indexOf("--password-stdin") >= 0;
+                app.sshBusy = "";
+                app.sshPendingPassword = "";
+                try {
+                    var data = JSON.parse(this.text);
+                    app.refreshSsh();
+                    if (data.ok && data.path) {
+                        app.navigateAnyPane(data.path);
+                    } else if (data.kind === "Auth") {
+                        app.openConnect(target, usedPassword
+                            ? (app.isPt ? "Login recusado: confira usuário e senha." : "Login refused: check the user and password.")
+                            : (app.isPt ? "Sem chave SSH válida para este servidor: digite a senha." : "No valid SSH key for this server: enter the password."));
+                    } else if (data.kind === "HostKey") {
+                        app.errorMessage = app.isPt
+                            ? "Host \"" + target + "\" desconhecido ou com chave alterada. Confirme no terminal: ssh " + target
+                            : "Host \"" + target + "\" is unknown or its key changed. Confirm in a terminal: ssh " + target;
+                    } else if (data.kind === "Network") {
+                        app.errorMessage = app.isPt ? "Não foi possível alcançar \"" + target + "\" (rede, porta ou servidor desligado)" : "Could not reach \"" + target + "\" (network, port or server down)";
+                    } else if (data.kind === "Missing") {
+                        app.errorMessage = app.isPt ? "Instale o sshfs para conectar a servidores SSH" : "Install sshfs to connect to SSH servers";
+                    } else {
+                        app.errorMessage = (app.isPt ? "Não foi possível conectar: " : "Could not connect: ") + (data.error || target);
+                    }
+                } catch (e) {
+                    app.errorMessage = app.isPt ? "Falha ao conectar ao servidor" : "Failed to connect to the server";
+                }
+            }
+        }
+    }
+    Process {
+        id: sshUnmountProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var name = app.sshUnmounting;
+                app.sshUnmounting = "";
+                try {
+                    var data = JSON.parse(this.text);
+                    if (data.ok) {
+                        for (var i = 0; i < app.sshList.length; i++) {
+                            var r = app.sshList[i];
+                            if (r.name === name && r.path && app.currentPath.indexOf(r.path) === 0) app.loadFolder(app.homeDir);
+                        }
+                    } else {
+                        app.errorMessage = app.isPt ? "Não foi possível desmontar \"" + name + "\" (há arquivos em uso?)" : "Could not unmount \"" + name + "\" (files in use?)";
+                    }
+                } catch (e) {}
+                app.refreshSsh();
+            }
+        }
+    }
+    Process {
+        id: sshForgetProc
+        stdout: StdioCollector { onStreamFinished: app.refreshSsh() }
     }
 
     function mountAndOpenDevice(device) {
@@ -1245,6 +1361,15 @@ Rectangle {
             return;
         }
 
+        if (app.showConnectModal) {
+            if (event.key === Qt.Key_Escape) {
+                app.showConnectModal = false;
+                app.forceActiveFocus();
+                event.accepted = true;
+            }
+            return;
+        }
+
         // Se estiver com modal de renomear aberto, deixa o modal cuidar das teclas
         if (app.showRenameModal) {
             if (event.key === Qt.Key_Escape) {
@@ -1705,6 +1830,10 @@ Rectangle {
             var base = app.cloudList[i].path;
             if (base && path.indexOf(base + "/") === 0) return true;
         }
+        for (var j = 0; j < app.sshList.length; j++) {
+            var sbase = app.sshList[j].path;
+            if (sbase && path.indexOf(sbase + "/") === 0) return true;
+        }
         return false;
     }
 
@@ -1873,6 +2002,7 @@ Rectangle {
         app.forceActiveFocus();
         placesProc.running = true;
         app.refreshCloud();
+        app.refreshSsh();
         loadFolder(app.currentPath);
     }
 
@@ -1963,6 +2093,13 @@ Rectangle {
                 cloudBusy: app.cloudBusy
                 onCloudClicked: function(remote) { app.cloudClicked(remote); }
                 onCloudUnmountRequested: function(name) { app.cloudUnmount(name); }
+                sshList: app.sshList
+                sshAvailable: app.sshAvailable
+                sshBusy: app.sshBusy
+                onSshClicked: function(server) { app.sshClicked(server); }
+                onSshUnmountRequested: function(name) { app.sshUnmount(name); }
+                onSshForgetRequested: function(name) { app.sshForget(name); }
+                onSshConnectRequested: app.openConnect("", "")
                 pinnedList: app.pinnedPlaces
                 canPin: app.draggingFolders.length > 0
                 onPinDropped: app.pinPlaces(app.draggingFolders)
@@ -2576,6 +2713,23 @@ Rectangle {
         anchors.fill: parent
         onConfirmed: app.confirmDelete()
         onCancelled: app.cancelDelete()
+    }
+
+    // Modal "Conectar a servidor" (SSH)
+    ConnectModal {
+        id: connectModal
+        z: 112
+        anchors.fill: parent
+        active: app.showConnectModal
+        onSubmitted: function(target, password) {
+            app.showConnectModal = false;
+            app.forceActiveFocus();
+            app.sshConnect(target, password);
+        }
+        onCancelled: {
+            app.showConnectModal = false;
+            app.forceActiveFocus();
+        }
     }
 
     // Modal de renomeação (F2 / nova pasta)

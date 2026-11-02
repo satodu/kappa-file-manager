@@ -29,8 +29,8 @@ pub fn validate_remote_name(name: &str) -> io::Result<()> {
     if ok { Ok(()) } else { Err(invalid("Nome de remote inválido")) }
 }
 
-/// Pasta própria (0700) onde as nuvens são montadas; nunca um caminho vindo de fora
-fn mount_base() -> io::Result<PathBuf> {
+/// Pasta própria do Kappa em `$XDG_RUNTIME_DIR` (RAM, 0700 nas subpastas); nunca um caminho vindo de fora
+pub(super) fn runtime_dir() -> io::Result<PathBuf> {
     let root = match std::env::var_os("XDG_RUNTIME_DIR").filter(|v| !v.is_empty()) {
         Some(run) => PathBuf::from(run),
         None => PathBuf::from(std::env::var_os("HOME").ok_or_else(|| invalid("HOME indefinido"))?).join(".cache"),
@@ -38,7 +38,12 @@ fn mount_base() -> io::Result<PathBuf> {
     if !root.is_absolute() {
         return Err(invalid("Pasta de montagem inválida"));
     }
-    Ok(root.join("kappa").join("cloud"))
+    Ok(root.join("kappa"))
+}
+
+/// Pasta própria (0700) onde as nuvens são montadas
+fn mount_base() -> io::Result<PathBuf> {
+    Ok(runtime_dir()?.join("cloud"))
 }
 
 /// Cache de escrita do rclone: pasta 0700 própria, também em `$XDG_RUNTIME_DIR` (RAM)
@@ -58,7 +63,7 @@ pub fn mount_point(name: &str) -> io::Result<PathBuf> {
     Ok(mount_base()?.join(name))
 }
 
-fn is_mounted(mp: &std::path::Path) -> bool {
+pub(super) fn is_mounted(mp: &std::path::Path) -> bool {
     let table = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
     parse_mountinfo(&table).iter().any(|m| m == mp)
 }

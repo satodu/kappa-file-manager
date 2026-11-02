@@ -171,7 +171,7 @@ fn data_home() -> std::io::Result<PathBuf> {
     }
 }
 
-fn config_dir() -> std::io::Result<PathBuf> {
+pub(super) fn config_dir() -> std::io::Result<PathBuf> {
     match std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty()).map(PathBuf::from) {
         Some(p) if p.is_absolute() => Ok(p.join("kappa")),
         _ => dirs::home_dir().map(|h| h.join(".config/kappa")).ok_or_else(|| invalid("HOME não definido")),

@@ -16,6 +16,13 @@ Rectangle {
     property string cloudBusy: ""
     signal cloudClicked(var remote)
     signal cloudUnmountRequested(string name)
+    property var sshList: []
+    property bool sshAvailable: false
+    property string sshBusy: ""
+    signal sshClicked(var server)
+    signal sshUnmountRequested(string name)
+    signal sshForgetRequested(string name)
+    signal sshConnectRequested()
     signal pinDropped()
     signal dropRequested(var paths, string destDir)
     signal unpinRequested(string path)
@@ -610,125 +617,211 @@ Rectangle {
             }
         }
 
+        // Delegate compartilhado por nuvem (rclone) e servidores SSH (sshfs): ambos são pastas montadas
+        Component {
+            id: remoteDelegate
+
+            Rectangle {
+                    id: cloudItem
+                    required property var modelData
+                    readonly property bool active: modelData.mounted && root.currentPath.indexOf(modelData.path) === 0
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    radius: root.effectiveRadius
+                    color: active ? KappaTheme.tint10 : (cloudMouse.containsMouse ? KappaTheme.tint5 : "transparent")
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        width: 2
+                        color: KappaTheme.sun
+                        visible: cloudItem.active
+                    }
+
+                    // Soltar arquivos do Kappa aqui: pergunta se copia ou move para esta pasta
+                    DropArea {
+                        id: cloudDrop
+                        z: 5
+                        anchors.fill: parent
+                        keys: ["text/uri-list"]
+                        enabled: modelData.mounted === true && root.canDropOn(modelData.path)
+                        onEntered: function(drag) { drag.accepted = true; }
+                        onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
+                        Rectangle {
+                            anchors.fill: parent
+                            visible: cloudDrop.containsDrag
+                            radius: root.effectiveRadius
+                            color: KappaTheme.tint10
+                            border.width: 1
+                            border.color: KappaTheme.sun
+                        }
+                    }
+
+                    MouseArea {
+                        id: cloudMouse
+                        anchors.fill: parent
+                        z: -1
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (modelData.type === "ssh") root.sshClicked(modelData); else root.cloudClicked(modelData);
+                            if (typeof app !== "undefined" && app) app.forceActiveFocus();
+                        }
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 12
+
+                        Text {
+                            textFormat: Text.PlainText
+                            text: modelData.type === "ssh" ? "󰣀" : "󰅟"
+                            font.family: Tokens.mono
+                            font.pixelSize: 14
+                            color: cloudItem.active ? KappaTheme.sun : KappaTheme.inkDim
+                        }
+                        Text {
+                            textFormat: Text.PlainText
+                            Layout.fillWidth: true
+                            text: (modelData.type === "ssh" ? root.sshBusy : root.cloudBusy) === modelData.name ? modelData.name + " …" : modelData.name
+                            font.family: Tokens.ui
+                            font.pixelSize: 13
+                            color: cloudItem.active ? KappaTheme.ink : KappaTheme.inkDim
+                            elide: Text.ElideRight
+                        }
+
+                        // Desmontar (só quando montado)
+                        Rectangle {
+                            implicitWidth: 20
+                            implicitHeight: 20
+                            radius: root.effectiveRadius
+                            color: cloudEjectMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+                            visible: modelData.mounted
+                            Text {
+                                textFormat: Text.PlainText
+                                anchors.centerIn: parent
+                                text: "⏏"
+                                font.family: Tokens.mono
+                                font.pixelSize: 12
+                                color: cloudEjectMouse.containsMouse ? KappaTheme.sun : KappaTheme.inkFaint
+                            }
+                            MouseArea {
+                                id: cloudEjectMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: { if (modelData.type === "ssh") root.sshUnmountRequested(modelData.name); else root.cloudUnmountRequested(modelData.name); }
+                            }
+                        }
+
+                        // Esquecer o servidor salvo (só ssh e desmontado)
+                        Rectangle {
+                            implicitWidth: 20
+                            implicitHeight: 20
+                            radius: root.effectiveRadius
+                            color: sshForgetMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+                            visible: modelData.type === "ssh" && !modelData.mounted
+                            Text {
+                                textFormat: Text.PlainText
+                                anchors.centerIn: parent
+                                text: "✕"
+                                font.family: Tokens.mono
+                                font.pixelSize: 11
+                                color: sshForgetMouse.containsMouse ? KappaTheme.sun : KappaTheme.inkFaint
+                            }
+                            MouseArea {
+                                id: sshForgetMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.sshForgetRequested(modelData.name)
+                            }
+                        }
+
+                        Rectangle {
+                            implicitWidth: cloudKind.implicitWidth + 10
+                            implicitHeight: 16
+                            radius: root.effectiveRadius
+                            color: "transparent"
+                            border.width: 1
+                            border.color: KappaTheme.lineStrong
+                            Text {
+                                id: cloudKind
+                                textFormat: Text.PlainText
+                                anchors.centerIn: parent
+                                text: modelData.type === "ssh" ? "SFTP" : (modelData.type === "onedrive" ? "ONEDRIVE" : "DRIVE")
+                                font.family: Tokens.mono
+                                font.pixelSize: 9
+                                font.bold: true
+                                color: KappaTheme.sun
+                            }
+                        }
+                    }
+                }
+        }
+
         Repeater {
             model: root.cloudList
+            delegate: remoteDelegate
+        }
 
-            delegate: Rectangle {
-                id: cloudItem
-                required property var modelData
-                readonly property bool active: modelData.mounted && root.currentPath.indexOf(modelData.path) === 0
+        // 5c. Servidores SSH (sshfs): só aparece com o sshfs instalado; o + conecta a um novo
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.sshAvailable ? 16 : 0
+            visible: root.sshAvailable
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 20
+            spacing: 8
+            visible: root.sshAvailable
+
+            Text { textFormat: Text.PlainText; text: "//"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.sun }
+            Text {
+                textFormat: Text.PlainText
+                text: root.isPt ? "SERVIDORES_" : "SERVERS_"
+                font.family: Tokens.ui
+                font.pixelSize: 11
+                font.bold: true
+                color: KappaTheme.inkDim
+            }
+            Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 36
+                height: 1
+                color: KappaTheme.line
+                Rectangle { anchors.right: parent.right; anchors.top: parent.top; width: 1; height: 5; color: KappaTheme.lineStrong }
+            }
+            Rectangle {
+                implicitWidth: 20
+                implicitHeight: 20
                 radius: root.effectiveRadius
-                color: active ? KappaTheme.tint10 : (cloudMouse.containsMouse ? KappaTheme.tint5 : "transparent")
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: 2
-                    color: KappaTheme.sun
-                    visible: cloudItem.active
+                color: sshAddMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+                Text {
+                    textFormat: Text.PlainText
+                    anchors.centerIn: parent
+                    text: "+"
+                    font.family: Tokens.mono
+                    font.pixelSize: 14
+                    color: sshAddMouse.containsMouse ? KappaTheme.sun : KappaTheme.inkDim
                 }
-
-                // Soltar arquivos do Kappa aqui: pergunta se copia ou move para esta pasta
-                DropArea {
-                    id: cloudDrop
-                    z: 5
-                    anchors.fill: parent
-                    keys: ["text/uri-list"]
-                    enabled: modelData.mounted === true && root.canDropOn(modelData.path)
-                    onEntered: function(drag) { drag.accepted = true; }
-                    onDropped: function(drop) { drop.accept(Qt.CopyAction); root.dropOn(modelData.path); }
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: cloudDrop.containsDrag
-                        radius: root.effectiveRadius
-                        color: KappaTheme.tint10
-                        border.width: 1
-                        border.color: KappaTheme.sun
-                    }
-                }
-
                 MouseArea {
-                    id: cloudMouse
+                    id: sshAddMouse
                     anchors.fill: parent
-                    z: -1
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        root.cloudClicked(modelData);
-                        if (typeof app !== "undefined" && app) app.forceActiveFocus();
-                    }
-                }
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 12
-
-                    Text {
-                        textFormat: Text.PlainText
-                        text: "󰅟"
-                        font.family: Tokens.mono
-                        font.pixelSize: 14
-                        color: cloudItem.active ? KappaTheme.sun : KappaTheme.inkDim
-                    }
-                    Text {
-                        textFormat: Text.PlainText
-                        Layout.fillWidth: true
-                        text: root.cloudBusy === modelData.name ? modelData.name + " …" : modelData.name
-                        font.family: Tokens.ui
-                        font.pixelSize: 13
-                        color: cloudItem.active ? KappaTheme.ink : KappaTheme.inkDim
-                        elide: Text.ElideRight
-                    }
-
-                    // Desmontar (só quando montado)
-                    Rectangle {
-                        implicitWidth: 20
-                        implicitHeight: 20
-                        radius: root.effectiveRadius
-                        color: cloudEjectMouse.containsMouse ? KappaTheme.tint10 : "transparent"
-                        visible: modelData.mounted
-                        Text {
-                            textFormat: Text.PlainText
-                            anchors.centerIn: parent
-                            text: "⏏"
-                            font.family: Tokens.mono
-                            font.pixelSize: 12
-                            color: cloudEjectMouse.containsMouse ? KappaTheme.sun : KappaTheme.inkFaint
-                        }
-                        MouseArea {
-                            id: cloudEjectMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.cloudUnmountRequested(modelData.name)
-                        }
-                    }
-
-                    Rectangle {
-                        implicitWidth: cloudKind.implicitWidth + 10
-                        implicitHeight: 16
-                        radius: root.effectiveRadius
-                        color: "transparent"
-                        border.width: 1
-                        border.color: KappaTheme.lineStrong
-                        Text {
-                            id: cloudKind
-                            textFormat: Text.PlainText
-                            anchors.centerIn: parent
-                            text: modelData.type === "onedrive" ? "ONEDRIVE" : "DRIVE"
-                            font.family: Tokens.mono
-                            font.pixelSize: 9
-                            font.bold: true
-                            color: KappaTheme.sun
-                        }
-                    }
+                    onClicked: root.sshConnectRequested()
                 }
             }
+        }
+
+        Repeater {
+            model: root.sshList
+            delegate: remoteDelegate
         }
 
         // 6. Espaçador flexível inferior (Nó 131)

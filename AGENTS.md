@@ -32,6 +32,7 @@ kappa-file-manager/
 │   │   └── watcher.rs           // FolderWatcher (inotify em tempo real)
 │   └── ops/
 │       ├── mod.rs
+│       ├── ssh.rs               // Servidores SSH via sshfs (alvo validado, senha só por stdin)
 │       └── file_ops.rs          // Operações de arquivos (abrir xdg-open, lixeira trash, renomear)
 ├── qml/
 │   ├── shell.qml                // ShellRoot com FloatingWindow (1440x900)
@@ -53,6 +54,7 @@ kappa-file-manager/
 │   ├── DropModal.qml            // Soltar numa pasta: "Copiar ou mover?" (C / M / Esc)
 │   ├── DragGhost.qml            // Cartão que acompanha o ponteiro ao arrastar arquivos (imagem do QDrag)
 │   ├── OpenWithModal.qml        // "Abrir com > Outro aplicativo…": busca em todos os apps instalados
+│   ├── ConnectModal.qml         // Conectar a servidor SSH (alvo + senha opcional)
 │   ├── DeleteModal.qml          // Modal de confirmação de exclusão (lixeira / permanente)
 │   ├── AppearanceDialog.qml     // Diálogo de Aparência (tema próprio do Kappa)
 │   ├── KappaTheme.qml           // Singleton de cores: segue Tokens ou paleta fixa via matugen
@@ -194,6 +196,12 @@ kappa-file-manager/
 22. **Soltar numa pasta: copiar ou mover (0.1.6):**
    - Soltar arquivos arrastados do Kappa sobre uma pasta da lista/grade, sobre o fundo de um painel (a pasta mostrada; útil no split view) ou sobre uma linha da `Sidebar` (lugares, fixados, discos locais montados, nuvem montada) abre `DropModal.qml` ("Copiar ou mover?": `C`, `M`, `Esc`; Enter não faz nada) e só então chama `app.startTransfer(copy|move, origens, destino)` (o mesmo `--transfer` e `TransferCard` do colar). Soltar fora das linhas da Sidebar continua fixando pasta em Lugares.
    - **Segurança:** o drop só vale se `app.draggingPaths` foi preenchido pelo `FileList` ao iniciar o arrasto (`beginDrag`); o conteúdo recebido (`drop.urls`/mime) é ignorado, então arrasto de fora é recusado. O destino vem do estado do QML, nunca do drop. `app.canDropOn` recusa soltar na própria pasta de origem, numa pasta sobre ela mesma ou dentro de si; o backend ainda valida tudo (`ensure_not_into_self`, `RENAME_NOREPLACE`, nomes únicos). Não adicione aceitação de drop externo sem atualizar `SECURITY.md`.
+
+23. **Servidores SSH / SFTP (0.1.7):**
+   - `src/ops/ssh.rs`: `--ssh-json` (servidores salvos + `available` se há `sshfs`), `--ssh-mount <usuario@host[:porta]> [--password-stdin]`, `--ssh-unmount <alvo>` e `--ssh-forget <alvo>`. Monta a home do servidor com `sshfs` em `$XDG_RUNTIME_DIR/kappa/ssh/<alvo>` (`0700`), `StrictHostKeyChecking=yes`, `umask=077`. Sem senha usa `BatchMode=yes`; com senha, ela vem pelo stdin do backend e vai ao stdin do `sshfs` (`password_stdin`). **Nunca** ponha senha em argumento, arquivo, log ou na lista salva (`~/.config/kappa/servers.json`, só alvos, `0600`).
+   - O alvo passa por `parse_target` (usuário/host/porta restritos, nunca começa com `-`, sem IPv6). Erros viram classe (`Auth`, `HostKey`, `Network`, `Missing`, `Invalid`, `Other`) via `diagnose` (re-roda `ssh -o BatchMode=yes ... true`), porque o `sshfs` esconde o motivo. Nunca repasse o texto cru do servidor.
+   - Exclusão em SSH é sempre permanente com modal (`app.isCloudPath` cobre `cloudList` e `sshList`; `--trash` recusa via `is_ssh_path`). FTP/FTPS não existem: texto puro, fica para outro trabalho.
+   - QML: grupo `SERVIDORES_`/`SERVERS_` na `Sidebar` (aparece com `sshfs` instalado, botão `+`), delegate `remoteDelegate` compartilhado com a nuvem, `ConnectModal.qml` (alvo + senha opcional, Tab/Enter/Esc), `App.qml` com `sshList`, `sshClicked`, `sshConnect`, `sshUnmount`, `sshForget`. Login recusado reabre o modal pedindo a senha. Qualquer ajuste exige teste em `ssh.rs` e `SECURITY.md`.
 
 ---
 

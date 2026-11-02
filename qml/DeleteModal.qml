@@ -206,7 +206,7 @@ property bool cloud: false
                 wrapMode: Text.WordWrap
                 text: root.permanent
                       ? (root.cloud
-                         ? (root.isPt ? "Os itens serão apagados na nuvem. O Kappa não tem lixeira aqui: o provedor pode guardá-los na lixeira dele, mas não conte com isso." : "The items will be deleted in the cloud. Kappa has no trash here: the provider may keep them in its own trash, but do not count on it.")
+                         ? (root.isPt ? "Os itens serão apagados no servidor remoto (nuvem ou SSH). O Kappa não tem lixeira aqui: um provedor de nuvem pode guardá-los na lixeira dele, mas não conte com isso." : "The items will be deleted on the remote side (cloud or SSH). Kappa has no trash here: a cloud provider may keep them in its own trash, but do not count on it.")
                          : (root.isPt ? "Esta ação não pode ser desfeita. Os itens serão removidos do disco." : "This cannot be undone. The items will be removed from disk."))
                       : (root.isPt ? "Você poderá restaurar os itens pela Lixeira do sistema." : "You can restore the items from the system Trash.")
                 font.family: Tokens.ui
