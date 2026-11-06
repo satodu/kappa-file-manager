@@ -22,6 +22,6 @@ pkgbase = kappa-file-manager
 	optdepends = swww: set an image as wallpaper from the details panel
 	optdepends = ghostty: default terminal for "Open terminal here" (any terminal in $TERMINAL also works)
 	source = kappa-file-manager-0.1.9.tar.gz::https://github.com/satodu/kappa-file-manager/archive/refs/tags/v0.1.9.tar.gz
-	sha256sums = SKIP
+	sha256sums = e3750008626044a307729ed24219f6bcfc32568a7f017c133c073ea6f7bd7340
 
 pkgname = kappa-file-manager
