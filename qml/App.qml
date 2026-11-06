@@ -1659,10 +1659,14 @@ Rectangle {
         stdout: StdioCollector {
             onStreamFinished: {
                 var apps = [];
+                var data = null;
                 try {
-                    var data = JSON.parse(this.text);
+                    data = JSON.parse(this.text);
                     if (data.ok && data.apps) apps = data.apps;
                 } catch (e) {}
+                contextMenu.openWithExt = (data && data.ext) ? data.ext : "";
+                contextMenu.openWithCanRemember = !!(data && data.can_remember);
+                contextMenu.openWithKappaDefault = (data && data.kappa_default) ? data.kappa_default : "";
                 contextMenu.openWithApps = apps;
                 contextMenu.openWithLoading = false;
             }
@@ -1674,10 +1678,13 @@ Rectangle {
         stdout: StdioCollector {
             onStreamFinished: {
                 var apps = [];
+                var data = null;
                 try {
-                    var data = JSON.parse(this.text);
+                    data = JSON.parse(this.text);
                     if (data.ok && data.apps) apps = data.apps;
                 } catch (e) {}
+                openWithModal.ext = (data && data.ext) ? data.ext : "";
+                openWithModal.canRemember = !!(data && data.can_remember);
                 openWithModal.apps = apps;
                 openWithModal.loading = false;
             }
@@ -1719,10 +1726,20 @@ Rectangle {
         app.forceActiveFocus();
     }
 
-    function openItemWith(item, appId) {
+    // remember: grava o app como padrão do Kappa para a extensão (o backend recusa scripts e executáveis)
+    function openItemWith(item, appId, remember) {
+        if (!item || !item.path) return;
+        var cmd = [app.backendBin, "--open-with", appId, item.path];
+        if (remember) cmd.push("--remember");
+        openWithProc.running = false;
+        openWithProc.command = cmd;
+        openWithProc.running = true;
+    }
+
+    function forgetOpenDefault(item) {
         if (!item || !item.path) return;
         openWithProc.running = false;
-        openWithProc.command = [app.backendBin, "--open-with", appId, item.path];
+        openWithProc.command = [app.backendBin, "--open-default-forget", item.path];
         openWithProc.running = true;
     }
 
@@ -2589,8 +2606,11 @@ Rectangle {
         onOpenWithListRequested: function(item) {
             app.listOpenWith(item);
         }
-        onOpenWithTriggered: function(item, appId) {
-            app.openItemWith(item, appId);
+        onOpenWithTriggered: function(item, appId, remember) {
+            app.openItemWith(item, appId, remember);
+        }
+        onOpenWithForgetTriggered: function(item) {
+            app.forgetOpenDefault(item);
         }
         onOpenWithOtherTriggered: function(item) {
             app.openWithOther(item);
@@ -2764,8 +2784,8 @@ Rectangle {
         z: 110
         anchors.fill: parent
         active: app.showOpenWithModal
-        onChosen: function(appId) {
-            app.openItemWith(app.openWithTarget, appId);
+        onChosen: function(appId, remember) {
+            app.openItemWith(app.openWithTarget, appId, remember);
             app.closeOpenWithModal();
         }
         onCancelled: app.closeOpenWithModal()

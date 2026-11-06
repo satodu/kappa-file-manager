@@ -12,6 +12,10 @@ Item {
     property var target: null
     property var apps: []
     property bool loading: false
+    // "Sempre usar para .ext" (padrão só no Kappa)
+    property string ext: ""
+    property bool canRemember: false
+    property bool remember: false
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property int effectiveRadius: (typeof app !== "undefined" && app && app.systemRadius !== undefined) ? app.systemRadius : Tokens.radius
     readonly property var filtered: {
@@ -20,12 +24,15 @@ Item {
         return root.apps.filter(function(a) { return a.name.toLowerCase().indexOf(q) !== -1; });
     }
 
-    signal chosen(string appId)
+    signal chosen(string appId, bool remember)
     signal cancelled()
 
     function open(item) {
         root.target = item;
         root.apps = [];
+        root.ext = "";
+        root.canRemember = false;
+        root.remember = false;
         root.loading = true;
         searchInput.text = "";
         list.currentIndex = 0;
@@ -34,7 +41,7 @@ Item {
 
     function pick() {
         if (list.currentIndex >= 0 && list.currentIndex < root.filtered.length) {
-            root.chosen(root.filtered[list.currentIndex].id);
+            root.chosen(root.filtered[list.currentIndex].id, root.canRemember && root.remember);
         }
     }
 
@@ -219,8 +226,58 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.chosen(modelData.id)
+                        // Clique só seleciona (dá tempo de marcar "Sempre usar"); abre com duplo clique, Enter ou "Abrir"
+                        onClicked: { list.currentIndex = index; searchInput.forceActiveFocus(); }
+                        onDoubleClicked: { list.currentIndex = index; root.pick(); }
                     }
+                }
+            }
+
+            // Marcada, o app escolhido vira o padrão do Kappa para a extensão (não muda o sistema)
+            Rectangle {
+                visible: root.canRemember
+                Layout.fillWidth: true
+                implicitHeight: 32
+                radius: root.effectiveRadius
+                color: rememberArea.containsMouse ? KappaTheme.tint10 : "transparent"
+                RowLayout {
+                    id: rememberRow
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 8
+                    Rectangle {
+                        Layout.preferredWidth: 12
+                        Layout.preferredHeight: 12
+                        radius: Math.min(3, root.effectiveRadius)
+                        color: root.remember ? KappaTheme.sun : "transparent"
+                        border.width: 1
+                        border.color: root.remember ? KappaTheme.sun : KappaTheme.lineStrong
+                    }
+                    Text {
+                        textFormat: Text.PlainText
+                        text: (root.isPt ? "Sempre usar para ." : "Always use for .") + root.ext
+                        font.family: Tokens.ui
+                        font.pixelSize: 13
+                        color: KappaTheme.ink
+                    }
+                    Item { Layout.fillWidth: true }
+                    Rectangle {
+                        implicitWidth: kappaOnly.implicitWidth + 8
+                        implicitHeight: 16
+                        radius: Math.min(2, root.effectiveRadius)
+                        color: "transparent"
+                        border.width: 1
+                        border.color: KappaTheme.line
+                        Text { id: kappaOnly; anchors.centerIn: parent; textFormat: Text.PlainText; text: root.isPt ? "SÓ NO KAPPA" : "KAPPA ONLY"; font.family: Tokens.mono; font.pixelSize: 9; color: KappaTheme.inkDim }
+                    }
+                }
+                MouseArea {
+                    id: rememberArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { root.remember = !root.remember; searchInput.forceActiveFocus(); }
                 }
             }
 
@@ -231,6 +288,7 @@ Item {
                 spacing: 8
                 Text { textFormat: Text.PlainText; text: "↑↓  Enter"; font.family: Tokens.mono; font.pixelSize: 11; color: KappaTheme.inkDim }
                 Item { Layout.fillWidth: true }
+
                 Rectangle {
                     implicitWidth: 88
                     implicitHeight: 30
@@ -252,6 +310,31 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.cancelled()
+                    }
+                }
+
+                Rectangle {
+                    readonly property bool enabled: root.filtered.length > 0
+                    implicitWidth: 88
+                    implicitHeight: 30
+                    radius: root.effectiveRadius
+                    opacity: enabled ? 1 : 0.4
+                    color: (enabled && openArea.containsMouse) ? Qt.lighter(KappaTheme.sun, 1.1) : KappaTheme.sun
+                    Text {
+                        textFormat: Text.PlainText
+                        anchors.centerIn: parent
+                        text: root.isPt ? "Abrir" : "Open"
+                        font.family: Tokens.ui
+                        font.pixelSize: 12
+                        font.bold: true
+                        color: KappaTheme.inkOnBone
+                    }
+                    MouseArea {
+                        id: openArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: parent.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: if (parent.enabled) root.pick()
                     }
                 }
             }

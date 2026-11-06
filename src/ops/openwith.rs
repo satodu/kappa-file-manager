@@ -208,15 +208,15 @@ pub fn all_apps() -> Vec<App> {
 }
 
 pub fn list_json(path: &str, all: bool) -> serde_json::Value {
-    let result = if all {
-        require_absolute(path).map(|_| all_apps())
-    } else {
-        apps_for(Path::new(path))
-    };
+    if !all {
+        return list_json_with_defaults(path);
+    }
+    let result = require_absolute(path).map(|_| all_apps());
     match result {
         Ok(apps) => {
             let apps: Vec<_> = apps.into_iter().map(|a| json!({ "id": a.id, "name": a.name, "icon": a.icon })).collect();
-            json!({ "ok": true, "apps": apps })
+            let ext = can_remember(Path::new(path));
+            json!({ "ok": true, "apps": apps, "ext": ext, "can_remember": ext.is_some() })
         }
         Err(e) => json!({ "ok": false, "error": e.to_string(), "apps": [] }),
     }
@@ -245,6 +245,163 @@ pub fn open_with(id: &str, path: &str) -> std::io::Result<()> {
         .spawn()?
         .wait()?;
     if status.success() { Ok(()) } else { Err(invalid("Não foi possível abrir com este aplicativo")) }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Padrão do Kappa por extensão: `~/.config/kappa/open-defaults.json` (`{"by_extension":{"png":"x.desktop"}}`).
+// Vale só dentro do Kappa (não toca em `mimeapps.list`). Nunca vale para scripts, lançadores e
+// executáveis, nem para arquivos cujo conteúdo parece executável: esses continuam no `ConfirmModal`.
+// ---------------------------------------------------------------------------------------------
+
+const MAX_DEFAULTS: usize = 256;
+
+/// Extensões que nunca ganham padrão no Kappa: um padrão aqui faria o duplo clique rodar código
+const BLOCKED_EXTENSIONS: &[&str] = &[
+    "sh", "bash", "zsh", "fish", "csh", "tcsh", "ksh", "dash", "command", "run", "bin", "out", "elf", "so", "appimage", "flatpak", "jar",
+    "exe", "msi", "bat", "cmd", "com", "scr", "vbs", "ps1", "desktop", "directory", "py", "pyw", "pyc", "pl", "pm", "rb", "php", "lua", "tcl",
+];
+
+/// Chave da extensão de `path`: última parte, minúscula, só `[a-z0-9]`, até 16 caracteres.
+/// Sem extensão, oculto sem extensão (`.bashrc`) ou extensão bloqueada: `None`.
+pub fn extension_key(path: &Path) -> Option<String> {
+    let name = path.file_name()?.to_str()?;
+    let (stem, ext) = name.rsplit_once('.')?;
+    if stem.is_empty() || stem.chars().all(|c| c == '.') {
+        return None;
+    }
+    let ext = ext.to_ascii_lowercase();
+    let ok = (1..=16).contains(&ext.len()) && ext.bytes().all(|c| c.is_ascii_alphanumeric());
+    if !ok || BLOCKED_EXTENSIONS.contains(&ext.as_str()) {
+        return None;
+    }
+    Some(ext)
+}
+
+/// O arquivo pode ganhar padrão no Kappa? Arquivo comum, extensão permitida e conteúdo que não executa
+pub fn can_remember(path: &Path) -> Option<String> {
+    if !std::fs::metadata(path).map(|m| m.is_file()).unwrap_or(false) {
+        return None;
+    }
+    let ext = extension_key(path)?;
+    if super::file_ops::open_risk(path).is_some() {
+        return None;
+    }
+    Some(ext)
+}
+
+fn defaults_file() -> std::io::Result<PathBuf> {
+    Ok(super::integration::config_dir()?.join("open-defaults.json"))
+}
+
+/// Lê o mapa: descarta chaves e ids inválidos, extensões bloqueadas e o que passar de `MAX_DEFAULTS`
+pub fn parse_defaults(text: &str) -> Vec<(String, String)> {
+    let value: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
+    let mut out: Vec<(String, String)> = Vec::new();
+    let Some(map) = value.get("by_extension").and_then(|v| v.as_object()) else { return out };
+    for (ext, id) in map {
+        let Some(id) = id.as_str() else { continue };
+        let ext_ok = extension_key(Path::new(&format!("x.{ext}"))).as_deref() == Some(ext.as_str());
+        if ext_ok && validate_desktop_id(id).is_ok() && out.len() < MAX_DEFAULTS && !out.iter().any(|(e, _)| e == ext) {
+            out.push((ext.clone(), id.to_string()));
+        }
+    }
+    out
+}
+
+fn load_defaults_from(file: &Path) -> Vec<(String, String)> {
+    std::fs::read_to_string(file).map(|t| parse_defaults(&t)).unwrap_or_default()
+}
+
+fn save_defaults_to(file: &Path, list: &[(String, String)]) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+    let dir = file.parent().ok_or_else(|| invalid("Pasta de configuração inválida"))?;
+    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
+    let map: serde_json::Map<String, serde_json::Value> = list.iter().map(|(e, id)| (e.clone(), json!(id))).collect();
+    let body = json!({ "by_extension": map }).to_string();
+    let tmp = file.with_extension(format!("json.{}.tmp", std::process::id()));
+    let mut f = std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(&tmp)?;
+    f.write_all(body.as_bytes())?;
+    f.sync_all()?;
+    std::fs::rename(&tmp, file)
+}
+
+/// Grava (`Some(id)`) ou esquece (`None`) o padrão de `ext` em `file`
+fn update_default_in(file: &Path, ext: &str, id: Option<&str>) -> std::io::Result<()> {
+    let mut list = load_defaults_from(file);
+    list.retain(|(e, _)| e != ext);
+    if let Some(id) = id {
+        validate_desktop_id(id)?;
+        if list.len() >= MAX_DEFAULTS {
+            return Err(invalid("Limite de padrões do Kappa atingido"));
+        }
+        list.push((ext.to_string(), id.to_string()));
+    }
+    save_defaults_to(file, &list)
+}
+
+/// Aplicativo instalado e visível para o id (o mesmo critério do `open_with`)
+fn installed_app(id: &str) -> Option<App> {
+    let file = find_desktop(id)?;
+    let text = std::fs::read_to_string(file).ok()?;
+    let lang = ui_lang();
+    let (name, icon) = parse_desktop(&text, &lang).or_else(|| parse_desktop(&text, ""))?;
+    Some(App { id: id.to_string(), name, icon })
+}
+
+/// Padrão do Kappa válido para `path` agora (extensão permitida, conteúdo seguro, app ainda instalado)
+pub fn kappa_default_for(path: &Path) -> Option<App> {
+    let ext = can_remember(path)?;
+    let id = load_defaults_from(&defaults_file().ok()?).into_iter().find(|(e, _)| *e == ext)?.1;
+    installed_app(&id)
+}
+
+/// Marca `id` como padrão do Kappa para a extensão de `path`
+pub fn remember(id: &str, path: &str) -> std::io::Result<String> {
+    validate_desktop_id(id)?;
+    require_absolute(path)?;
+    let ext = can_remember(Path::new(path)).ok_or_else(|| invalid("Este tipo de arquivo não pode ter padrão no Kappa"))?;
+    installed_app(id).ok_or_else(|| invalid("Aplicativo não encontrado"))?;
+    update_default_in(&defaults_file()?, &ext, Some(id))?;
+    Ok(ext)
+}
+
+/// Esquece o padrão do Kappa da extensão de `path` (volta ao padrão do sistema)
+pub fn forget(path: &str) -> std::io::Result<()> {
+    require_absolute(path)?;
+    let name = Path::new(path);
+    let ext = extension_key(name).ok_or_else(|| invalid("Este arquivo não tem extensão"))?;
+    update_default_in(&defaults_file()?, &ext, None)
+}
+
+/// Lista para o submenu: padrão do Kappa primeiro (`badge: kappa`), depois o do sistema (`badge: system`)
+pub fn list_json_with_defaults(path: &str) -> serde_json::Value {
+    let p = Path::new(path);
+    let mut apps = match apps_for(p) {
+        Ok(a) => a,
+        Err(e) => return json!({ "ok": false, "error": e.to_string(), "apps": [] }),
+    };
+    let ext = can_remember(p);
+    let kappa = kappa_default_for(p);
+    let system_id = apps.first().map(|a| a.id.clone());
+    if let Some(k) = &kappa {
+        apps.retain(|a| a.id != k.id);
+        apps.insert(0, k.clone());
+    }
+    let list: Vec<_> = apps
+        .into_iter()
+        .map(|a| {
+            let badge = if kappa.as_ref().is_some_and(|k| k.id == a.id) {
+                "kappa"
+            } else if system_id.as_deref() == Some(a.id.as_str()) {
+                "system"
+            } else {
+                ""
+            };
+            json!({ "id": a.id, "name": a.name, "icon": a.icon, "badge": badge })
+        })
+        .collect();
+    json!({ "ok": true, "apps": list, "ext": ext, "can_remember": ext.is_some(), "kappa_default": kappa.map(|k| k.id) })
 }
 
 #[cfg(test)]
@@ -294,6 +451,64 @@ mod tests {
             assert!(ids.insert(&a.id), "id repetido {:?}", a.id);
         }
         assert!(apps.windows(2).all(|w| w[0].name.to_lowercase() <= w[1].name.to_lowercase()));
+    }
+
+    #[test]
+    fn extension_keys_are_normalized_and_scripts_are_blocked() {
+        assert_eq!(extension_key(Path::new("/a/Foto.PNG")).as_deref(), Some("png"));
+        assert_eq!(extension_key(Path::new("/a/b.tar.gz")).as_deref(), Some("gz"));
+        assert_eq!(extension_key(Path::new("/a/relatorio.md")).as_deref(), Some("md"));
+        for none in ["/a/sem", "/a/.bashrc", "/a/..x", "/a/x.", "/a/x.tar-gz", "/a/x.é", "/a/x.abcdefghijklmnopq"] {
+            assert_eq!(extension_key(Path::new(none)), None, "{none:?}");
+        }
+        for blocked in ["/a/x.sh", "/a/x.SH", "/a/x.py", "/a/x.desktop", "/a/x.AppImage", "/a/x.jar", "/a/x.exe", "/a/x.run"] {
+            assert_eq!(extension_key(Path::new(blocked)), None, "deveria bloquear {blocked:?}");
+        }
+    }
+
+    #[test]
+    fn saved_defaults_drop_invalid_blocked_and_duplicate_entries() {
+        let t = r#"{"by_extension":{"png":"org.kde.gwenview.desktop","sh":"bash.desktop","PDF":"x.desktop","md":"../x.desktop","txt":"kate.desktop","jpg":3}}"#;
+        assert_eq!(parse_defaults(t), [("png".to_string(), "org.kde.gwenview.desktop".to_string()), ("txt".into(), "kate.desktop".into())]);
+        assert!(parse_defaults("lixo").is_empty());
+        assert!(parse_defaults(r#"{"by_extension":[]}"#).is_empty());
+    }
+
+    #[test]
+    fn defaults_file_round_trip_is_private() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("kappa-openwith-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = dir.join("kappa/open-defaults.json");
+        update_default_in(&file, "png", Some("a.desktop")).unwrap();
+        update_default_in(&file, "txt", Some("b.desktop")).unwrap();
+        update_default_in(&file, "png", Some("c.desktop")).unwrap();
+        // O mapa é gravado em ordem alfabética
+        assert_eq!(load_defaults_from(&file), [("png".to_string(), "c.desktop".to_string()), ("txt".into(), "b.desktop".into())]);
+        assert_eq!(std::fs::metadata(&file).unwrap().permissions().mode() & 0o777, 0o600);
+        assert!(update_default_in(&file, "md", Some("-x.desktop")).is_err());
+        update_default_in(&file, "png", None).unwrap();
+        assert_eq!(load_defaults_from(&file), [("txt".to_string(), "b.desktop".to_string())]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn risky_content_never_gets_a_default() {
+        let dir = std::env::temp_dir().join(format!("kappa-openwith-risk-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let fake = dir.join("fatura.pdf");
+        std::fs::write(&fake, "#!/bin/sh\necho oi\n").unwrap();
+        let elf = dir.join("foto.png");
+        std::fs::write(&elf, b"\x7fELF\x02\x01").unwrap();
+        let ok = dir.join("nota.txt");
+        std::fs::write(&ok, "texto").unwrap();
+        assert_eq!(can_remember(&fake), None);
+        assert_eq!(can_remember(&elf), None);
+        assert_eq!(can_remember(&dir), None);
+        assert_eq!(can_remember(&ok).as_deref(), Some("txt"));
+        assert!(remember("kate.desktop", &fake.to_string_lossy()).is_err());
+        assert!(remember("kate.desktop", "relativo.txt").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

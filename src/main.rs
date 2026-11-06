@@ -171,6 +171,11 @@ async fn main() {
                                 return Ok(false);
                             }
                         }
+                        // Padrão do Kappa por extensão: só vale para arquivo sem risco (o `kappa_default_for`
+                        // recusa conteúdo executável e extensões de script/lançador)
+                        if let Some(app) = ops::openwith::kappa_default_for(Path::new(target)) {
+                            return ops::openwith::open_with(&app.id, target).map(|_| true);
+                        }
                         FileOperations::open_default(target).map(|_| true)
                     });
                     match result {
@@ -224,12 +229,25 @@ async fn main() {
                 return;
             }
             "--open-with" => {
-                // --open-with <id.desktop> <path>
+                // --open-with <id.desktop> <path> [--remember]: --remember grava o app como padrão do Kappa
+                // para a extensão do arquivo (só no Kappa; não mexe no padrão do sistema)
                 if let (Some(id), Some(target)) = (args.get(2), args.get(3)) {
-                    match ops::openwith::open_with(id, target) {
-                        Ok(()) => println!("{}", serde_json::json!({ "ok": true })),
-                        Err(e) => println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() })),
+                    let remember = args.iter().skip(4).any(|a| a == "--remember");
+                    let saved = if remember { Some(ops::openwith::remember(id, target)) } else { None };
+                    match (saved, ops::openwith::open_with(id, target)) {
+                        (Some(Err(e)), _) | (_, Err(e)) => println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() })),
+                        (Some(Ok(ext)), Ok(())) => println!("{}", serde_json::json!({ "ok": true, "remembered": ext })),
+                        (None, Ok(())) => println!("{}", serde_json::json!({ "ok": true })),
                     }
+                }
+                return;
+            }
+            "--open-default-forget" => {
+                // --open-default-forget <path>: esquece o padrão do Kappa da extensão (volta ao do sistema)
+                match args.get(2).map(|t| ops::openwith::forget(t)) {
+                    Some(Ok(())) => println!("{}", serde_json::json!({ "ok": true })),
+                    Some(Err(e)) => println!("{}", serde_json::json!({ "ok": false, "error": e.to_string() })),
+                    None => println!("{}", serde_json::json!({ "ok": false, "error": "Caminho ausente" })),
                 }
                 return;
             }

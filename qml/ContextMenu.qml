@@ -16,6 +16,11 @@ Item {
     property var openWithApps: []
     property bool openWithLoading: false
     property real openWithY: 0
+    // Padrão do Kappa por extensão (só vale dentro do Kappa): extensão, se pode lembrar, app atual e a caixa marcada
+    property string openWithExt: ""
+    property bool openWithCanRemember: false
+    property string openWithKappaDefault: ""
+    property bool openWithRemember: false
 
     readonly property bool isPt: I18n.lang.startsWith("pt")
     readonly property bool isAudio: root.targetItem && root.targetItem.kind === "audio"
@@ -30,7 +35,8 @@ Item {
 
     signal openTriggered(var item)
     signal openWithListRequested(var item)
-    signal openWithTriggered(var item, string appId)
+    signal openWithTriggered(var item, string appId, bool remember)
+    signal openWithForgetTriggered(var item)
     signal openWithOtherTriggered(var item)
     signal openNewTabTriggered(var item)
     signal openTerminalTriggered(var item)
@@ -55,6 +61,7 @@ Item {
         root.showSendSubmenu = false;
         root.showOpenWithSubmenu = false;
         root.openWithApps = [];
+        root.resetOpenWithDefaults();
         var estHeight = root.isAudio ? 500 : (root.isFolderContext ? 305 : 520);
         var clampX = Math.min(posX, root.width - root.menuWidth - 16);
         var clampY = Math.min(posY, root.height - estHeight - 16);
@@ -68,11 +75,19 @@ Item {
         if (!on) { root.showOpenWithSubmenu = false; return; }
         if (!root.showOpenWithSubmenu) {
             root.openWithApps = [];
+            root.resetOpenWithDefaults();
             root.openWithLoading = true;
             root.openWithListRequested(root.targetItem);
         }
         root.openWithY = row.mapToItem(root, 0, 0).y;
         root.showOpenWithSubmenu = true;
+    }
+
+    function resetOpenWithDefaults() {
+        root.openWithExt = "";
+        root.openWithCanRemember = false;
+        root.openWithKappaDefault = "";
+        root.openWithRemember = false;
     }
 
     function hide() {
@@ -1544,6 +1559,63 @@ Item {
                 color: KappaTheme.inkFaint
             }
 
+            // "Sempre usar para .ext": marcada, o app clicado vira o padrão do Kappa para essa extensão
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                radius: root.effectiveRadius
+                visible: root.openWithCanRemember && root.openWithApps.length > 0
+                color: rememberMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 10
+                    Rectangle {
+                        Layout.preferredWidth: 12
+                        Layout.preferredHeight: 12
+                        radius: Math.min(3, root.effectiveRadius)
+                        color: root.openWithRemember ? KappaTheme.sun : "transparent"
+                        border.width: 1
+                        border.color: root.openWithRemember ? KappaTheme.sun : KappaTheme.lineStrong
+                    }
+                    Text {
+                        textFormat: Text.PlainText
+                        Layout.fillWidth: true
+                        text: (root.isPt ? "Sempre usar para ." : "Always use for .") + root.openWithExt
+                        font.family: Tokens.ui
+                        font.pixelSize: 13
+                        color: KappaTheme.ink
+                        elide: Text.ElideRight
+                    }
+                    Rectangle {
+                        implicitWidth: kappaOnly.implicitWidth + 8
+                        implicitHeight: 16
+                        radius: Math.min(2, root.effectiveRadius)
+                        color: "transparent"
+                        border.width: 1
+                        border.color: KappaTheme.line
+                        Text { id: kappaOnly; anchors.centerIn: parent; textFormat: Text.PlainText; text: root.isPt ? "SÓ NO KAPPA" : "KAPPA ONLY"; font.family: Tokens.mono; font.pixelSize: 9; color: KappaTheme.inkDim }
+                    }
+                }
+
+                MouseArea {
+                    id: rememberMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.openWithRemember = !root.openWithRemember
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 9
+                visible: root.openWithCanRemember && root.openWithApps.length > 0
+                Rectangle { anchors.centerIn: parent; width: parent.width; height: 1; color: KappaTheme.line }
+            }
+
             Repeater {
                 model: root.openWithApps
 
@@ -1561,9 +1633,16 @@ Item {
                         anchors.rightMargin: 10
                         spacing: 10
 
-                        Text { textFormat: Text.PlainText; text: "󰀻"; font.family: Tokens.mono; font.pixelSize: 13; color: index === 0 ? KappaTheme.sun : KappaTheme.inkDim }
+                        Text { textFormat: Text.PlainText; text: "󰀻"; font.family: Tokens.mono; font.pixelSize: 13; color: modelData.badge ? KappaTheme.sun : KappaTheme.inkDim }
                         Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: modelData.name; font.family: Tokens.ui; font.pixelSize: 13; color: KappaTheme.ink; elide: Text.ElideRight }
-                        Text { textFormat: Text.PlainText; visible: index === 0; text: root.isPt ? "padrão" : "default"; font.family: Tokens.mono; font.pixelSize: 10; color: KappaTheme.inkFaint }
+                        Text {
+                            textFormat: Text.PlainText
+                            visible: !!modelData.badge
+                            text: modelData.badge === "kappa" ? (root.isPt ? "padrão · kappa" : "default · kappa") : (root.isPt ? "padrão" : "default")
+                            font.family: Tokens.mono
+                            font.pixelSize: 10
+                            color: modelData.badge === "kappa" ? KappaTheme.sun : KappaTheme.inkFaint
+                        }
                     }
 
                     MouseArea {
@@ -1571,7 +1650,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: { root.openWithTriggered(root.targetItem, modelData.id); root.hide(); }
+                        onClicked: { root.openWithTriggered(root.targetItem, modelData.id, root.openWithRemember); root.hide(); }
                     }
                 }
             }
@@ -1581,6 +1660,40 @@ Item {
                 Layout.preferredHeight: 9
                 visible: root.openWithApps.length > 0
                 Rectangle { anchors.centerIn: parent; width: parent.width; height: 1; color: KappaTheme.line }
+            }
+
+            // Há padrão do Kappa para a extensão: volta ao padrão do sistema
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                radius: root.effectiveRadius
+                visible: root.openWithKappaDefault !== ""
+                color: forgetMouse.containsMouse ? KappaTheme.tint10 : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 10
+                    Text { textFormat: Text.PlainText; text: "󰕌"; font.family: Tokens.mono; font.pixelSize: 13; color: KappaTheme.inkDim }
+                    Text {
+                        textFormat: Text.PlainText
+                        Layout.fillWidth: true
+                        text: (root.isPt ? "Esquecer padrão de ." : "Forget default for .") + root.openWithExt
+                        font.family: Tokens.ui
+                        font.pixelSize: 13
+                        color: KappaTheme.ink
+                        elide: Text.ElideRight
+                    }
+                }
+
+                MouseArea {
+                    id: forgetMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { var it = root.targetItem; root.hide(); root.openWithForgetTriggered(it); }
+                }
             }
 
             Rectangle {
