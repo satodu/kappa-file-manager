@@ -6,7 +6,7 @@
 
 A brutalist, high-performance file manager made **for** the **Ryoku OS** ecosystem, with a **Rust** backend and a native **QML / Quickshell** interface.
 
-> Version **0.1.10**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
+> Version **0.1.11**. Kappa is an independent community project. It is **not an official Ryoku app** and is not maintained by the Ryoku team.
 
 Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's best ideas (transparent device browsing, KIO-Fuse, KDE Connect integration, XDG places, a clean separation of model and view) and rebuilds them from scratch on a fast **Rust 2024** core, wearing the Ryoku design system.
 
@@ -33,7 +33,7 @@ Inspired by the depth and robustness of **KDE Dolphin**, Kappa takes Dolphin's b
 - **Ryoku visual language ("Greek-noir yakuza"):** corner radius taken from the Ryoku configuration, 1px hairlines, soft shadows, a vermillion *Hanko* (*eki-stamp*) seal, a monumental 河 kanji in the background and blueprint registration marks (+).
 - **Tabs:** a clean single-window view by default; the tab bar slides in when there is more than one tab (`Ctrl+T`, `Ctrl+W`).
 - **Split view (`F3`):** two folders side by side with independent navigation and a draggable divider.
-- **Inline search:** live filtering with a 150 ms debounce, category chips with live counts and a scope switch (*This folder* or *Everything*).
+- **Inline search:** live filtering with a 150 ms debounce, category chips with live counts and a scope switch (*This folder* or *Everything*). Patterns: `*.pdf` / `img_?.png` (glob over the whole name) and `re:<regex>` (e.g. `re:^foto_\d+\.(jpg|png)$`), case-insensitive; plain text is a substring match.
 - **Multi-selection:** `Ctrl+click` toggles, `Shift+click` and `Shift+arrows` select ranges, `Ctrl+A` selects everything. Copy, cut, paste and delete act on every selected item.
 - **Transfers with progress:** copy and move show a progress card with speed and time remaining, can be paused, and can be cancelled with `Esc`, including for multi-gigabyte files.
 - **Compress and extract:** the context menu compresses the selection to `.zip` or `.tar.gz` and extracts `.zip`, `.tar`, `.tar.gz` and `.tgz` into a new folder, with the same progress card. Extraction is hardened against zip-slip, hostile links and decompression bombs (see [SECURITY.md](SECURITY.md)).
@@ -82,7 +82,7 @@ The interface talks to the backend through a small command-line interface that p
 
 ### Requirements
 
-- **Ryoku OS** (provides the `ryoku-desktop` package with the `Ryoku.Ui` QML module), **Quickshell** and **Qt 6**
+- **Quickshell** and **Qt 6** on a Wayland desktop (KDE, GNOME, Sway, Hyprland, niri, ...). Ryoku OS is optional: if `ryoku-desktop` is installed Kappa follows its theme, radius and language; otherwise it uses its own palette, the system light/dark setting and `LANG`
 - **Rust and Cargo** (edition 2024) to build from source
 - Optional: `kdeconnect` and `kio-fuse` for phone integration, `matugen` for the Kappa-only theme, `swww` for "set as wallpaper", `rclone` for Google Drive / OneDrive, `sshfs` for SSH servers
 

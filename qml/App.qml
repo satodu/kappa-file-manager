@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 Rectangle {
     id: app
@@ -1163,10 +1163,41 @@ Rectangle {
         }
     }
 
+    // Mesmas regras do backend (NameMatcher em search.rs): `re:<padrão>` = regex,
+    // com `*` ou `?` = glob do nome inteiro (`*.pdf`), senão trecho do nome.
+    // Padrão inválido não casa nada.
+    function makeNameMatcher(raw) {
+        var q = (raw || "").trim();
+        if (q === "") return function(name) { return true; };
+        var re = null;
+        try {
+            if (q.indexOf("re:") === 0) {
+                var pat = q.slice(3);
+                if (pat === "") return function(name) { return false; };
+                re = new RegExp(pat, "i");
+            } else if (q.indexOf("*") !== -1 || q.indexOf("?") !== -1) {
+                var src = "";
+                for (var i = 0; i < q.length; i++) {
+                    var c = q[i];
+                    if (c === "*") src += ".*";
+                    else if (c === "?") src += ".";
+                    else src += c.replace(/[.*+?^${}()|[\]\\\/-]/g, "\\$&");
+                }
+                re = new RegExp("^" + src + "$", "i");
+            }
+        } catch (e) {
+            return function(name) { return false; };
+        }
+        if (re) return function(name) { return re.test(name || ""); };
+        var lower = q.toLowerCase();
+        return function(name) { return (name || "").toLowerCase().indexOf(lower) !== -1; };
+    }
+
     function filterAndDisplayEntries() {
         var counts = { all: 0, audio: 0, image: 0, doc: 0, folder: 0, code: 0 };
         var filtered = [];
         var query = (app.activeSearchQuery || "").trim().toLowerCase();
+        var nameMatches = app.makeNameMatcher(app.activeSearchQuery);
 
         var sourceList = (app.searchScope === "folder" && app.folderEntries.length > 0) ? app.folderEntries : app.rawEntries;
 
@@ -1175,7 +1206,7 @@ Rectangle {
 
             var matchQuery = true;
             if (query.length > 0) {
-                matchQuery = (item.name || "").toLowerCase().indexOf(query) !== -1;
+                matchQuery = nameMatches(item.name);
             }
 
             if (!matchQuery) continue;

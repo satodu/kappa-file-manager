@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Modal de confirmação de exclusão (Frames "Confirmar exclusão (lixeira)" e "(permanente)")
 Item {

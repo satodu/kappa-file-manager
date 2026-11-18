@@ -3,7 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Camada de cor própria do Kappa: por padrão segue o tema do Ryoku (Tokens),
 // mas pode ser fixada com um esquema Material gerado pelo matugen.

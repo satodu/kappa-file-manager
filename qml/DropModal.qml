@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Soltar arquivos numa pasta: pergunta se é para copiar ou mover. Cancelar é o padrão (Enter não faz nada).
 Item {

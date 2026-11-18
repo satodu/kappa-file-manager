@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Modal de renomeação (F2 e "Nova pasta"), no mesmo desenho dos modais de exclusão e aparência
 Item {

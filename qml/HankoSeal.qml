@@ -1,5 +1,5 @@
 import QtQuick
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 Item {
     id: seal

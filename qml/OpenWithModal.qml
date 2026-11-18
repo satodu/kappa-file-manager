@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // "Outro aplicativo…": todos os aplicativos instalados, com busca, para abrir o arquivo com qualquer um deles
 Item {

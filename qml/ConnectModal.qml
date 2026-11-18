@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Modal "Conectar a servidor" (SSH/SFTP via sshfs): usuario@host[:porta] e senha opcional (chave/agent não precisam)
 Item {

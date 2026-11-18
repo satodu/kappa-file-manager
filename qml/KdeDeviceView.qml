@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 Item {
     id: root

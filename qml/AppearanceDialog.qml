@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Diálogo de Aparência (Frames "Kappa / Aparência (tema)" e "(fixo)")
 Item {
@@ -213,7 +213,7 @@ Item {
                 wrapMode: Text.WordWrap
                 text: root.dFixed
                       ? (root.isPt ? "Paleta própria do Kappa. O resto do desktop não muda." : "Kappa's own palette. The rest of the desktop is unchanged.")
-                      : (root.isPt ? "Segue o tema do Ryoku: mudar o tema do sistema muda o Kappa." : "Follows the Ryoku theme: changing the system theme changes Kappa.")
+                      : (root.isPt ? "Segue o tema do sistema (Ryoku, se instalado; senão claro ou escuro do desktop)." : "Follows the system theme (Ryoku if installed, otherwise the desktop's light or dark).")
                 font.family: Tokens.ui
                 font.pixelSize: 12
                 color: KappaTheme.inkDim

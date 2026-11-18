@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Cartão de progresso de cópia/movimentação (Frames "Copiando arquivo grande" e "Cópia concluída")
 Item {

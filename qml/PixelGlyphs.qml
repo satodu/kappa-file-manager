@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 Item {
     id: root

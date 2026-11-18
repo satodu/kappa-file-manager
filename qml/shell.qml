@@ -1,6 +1,6 @@
 import QtQuick
 import Quickshell
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 ShellRoot {
     // Recarregar ao mudar arquivo só no desenvolvimento (run.sh exporta KAPPA_DEV=1)

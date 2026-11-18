@@ -205,6 +205,10 @@ kappa-file-manager/
    - Exclusão em SSH é sempre permanente com modal (`app.isCloudPath` cobre `cloudList` e `sshList`; `--trash` recusa via `is_ssh_path`). FTP/FTPS não existem: texto puro, fica para outro trabalho.
    - QML: grupo `SERVIDORES_`/`SERVERS_` na `Sidebar` (aparece com `sshfs` instalado, botão `+`), delegate `remoteDelegate` compartilhado com a nuvem, `ConnectModal.qml` (alvo + senha opcional, Tab/Enter/Esc), `App.qml` com `sshList`, `sshClicked`, `sshConnect`, `sshUnmount`, `sshForget`. Login recusado reabre o modal pedindo a senha. Qualquer ajuste exige teste em `ssh.rs` e `SECURITY.md`.
 
+24. **Independência do Ryoku e busca com padrões (0.1.11):**
+   - O QML importa `"Kappa/Ui/Singletons"` (`qml/Kappa/Ui/Singletons/`: `Tokens.qml`, `I18n.qml`), nunca `Ryoku.Ui.Singletons` direto. Os singletons usam paleta/fontes próprias (claro/escuro pelo sistema, idioma por `Qt.locale()`) e, se o módulo do Ryoku existir, uma ponte opcional (`Qt.createQmlObject` em try/catch) passa a seguir o tema dele. `ryoku-desktop` é só `optdepends`. Novas propriedades de `Tokens` precisam entrar na ponte e no fallback.
+   - Busca: `NameMatcher` (`search.rs`) e `App.makeNameMatcher` têm a mesma regra: `re:<regex>` (sem diferenciar maiúsculas), `*`/`?` = glob do nome inteiro, senão trecho. Padrão inválido não casa nada. O crate `regex` é linear (sem backtracking); mantenha o `size_limit`. Mudou numa ponta, mude na outra.
+
 ---
 
 ## 🛠️ 4. Comandos e Verificações de Qualidade

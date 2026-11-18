@@ -26,6 +26,62 @@ pub struct SearchResult {
     pub parent_folder_display: String,
 }
 
+/// Como o texto buscado é interpretado:
+/// - `re:<padrão>`: expressão regular (sem diferenciar maiúsculas), procurada em qualquer ponto do nome;
+/// - com `*` ou `?`: padrão glob (`*.pdf`), que precisa casar o nome inteiro;
+/// - senão: trecho do nome.
+pub enum NameMatcher {
+    Substring(String),
+    Pattern(regex::Regex),
+}
+
+impl NameMatcher {
+    /// Devolve `None` se o padrão for inválido (nenhum resultado, sem pânico).
+    pub fn new(query: &str) -> Option<Self> {
+        let q = query.trim();
+        if let Some(pat) = q.strip_prefix("re:") {
+            return Self::compile(pat);
+        }
+        if q.contains('*') || q.contains('?') {
+            let mut re = String::from("^");
+            for c in q.chars() {
+                match c {
+                    '*' => re.push_str(".*"),
+                    '?' => re.push('.'),
+                    c => re.push_str(&regex::escape(&c.to_string())),
+                }
+            }
+            re.push('$');
+            return Self::compile(&re);
+        }
+        Some(NameMatcher::Substring(q.to_lowercase()))
+    }
+
+    fn compile(pat: &str) -> Option<Self> {
+        if pat.is_empty() {
+            return None;
+        }
+        // Tetos de tamanho evitam padrões gigantes (sem retrocesso: o motor `regex` é linear)
+        regex::RegexBuilder::new(pat)
+            .case_insensitive(true)
+            .size_limit(1 << 20)
+            .build()
+            .ok()
+            .map(NameMatcher::Pattern)
+    }
+
+    /// Faixa (início, fim) em bytes do trecho que casou.
+    pub fn find(&self, name: &str) -> Option<(usize, usize)> {
+        match self {
+            NameMatcher::Substring(q) => {
+                let lower = name.to_lowercase();
+                lower.find(q.as_str()).map(|p| (p, p + q.len()))
+            }
+            NameMatcher::Pattern(re) => re.find(name).map(|m| (m.start(), m.end())),
+        }
+    }
+}
+
 pub struct SearchEngine;
 
 impl SearchEngine {
@@ -38,7 +94,10 @@ impl SearchEngine {
     ) -> Vec<SearchResult> {
         tokio::task::spawn_blocking(move || {
             let mut results = Vec::new();
-            let query_lower = filter.query.to_lowercase();
+            let matcher = match NameMatcher::new(&filter.query) {
+                Some(m) => m,
+                None => return results,
+            };
 
             let target_root = match filter.scope {
                 SearchScope::CurrentFolder => root_dir,
@@ -68,8 +127,7 @@ impl SearchEngine {
                 let file_name = entry.file_name().to_string_lossy();
 
                 // Checa se corresponde ao texto buscado
-                let file_name_lower = file_name.to_lowercase();
-                if let Some(pos) = file_name_lower.find(&query_lower) {
+                if let Some(match_range) = matcher.find(&file_name) {
                     if let Ok(file_entry) = FileEntry::from_path(path) {
                         // Se houver filtro de tipo (chip), valida
                         if let Some(kind) = filter.kind_filter {
@@ -78,7 +136,6 @@ impl SearchEngine {
                             }
                         }
 
-                        let match_range = (pos, pos + query_lower.len());
                         let parent_display = path
                             .parent()
                             .map(|p| p.file_name().unwrap_or(p.as_os_str()).to_string_lossy().to_string())
@@ -107,6 +164,28 @@ impl SearchEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn glob_matches_whole_name() {
+        let m = NameMatcher::new("*.pdf").unwrap();
+        assert!(m.find("Relatório.PDF").is_some());
+        assert!(m.find("a.pdf.txt").is_none());
+        let m = NameMatcher::new("img_?.png").unwrap();
+        assert!(m.find("img_1.png").is_some());
+        assert!(m.find("img_12.png").is_none());
+        // pontos e colchetes do glob são literais
+        assert!(NameMatcher::new("a.b*").unwrap().find("axb").is_none());
+    }
+
+    #[test]
+    fn regex_prefix_and_substring() {
+        let m = NameMatcher::new(r"re:^foto_\d{2}\.(jpg|png)$").unwrap();
+        assert!(m.find("FOTO_07.JPG").is_some());
+        assert!(m.find("foto_7.jpg").is_none());
+        assert!(NameMatcher::new("re:(").is_none());
+        assert!(NameMatcher::new("re:").is_none());
+        assert_eq!(NameMatcher::new("Ent").unwrap().find("entry.rs"), Some((0, 3)));
+    }
 
     #[tokio::test]
     async fn test_search_current_folder() {

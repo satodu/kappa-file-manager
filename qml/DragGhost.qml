@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import Ryoku.Ui.Singletons
+import "Kappa/Ui/Singletons"
 
 // Cartão que acompanha o ponteiro durante o arrasto de arquivos (vira a imagem do QDrag via grabToImage).
 // Fica fora da tela no FileList; só serve de molde para a imagem.
