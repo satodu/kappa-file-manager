@@ -22,7 +22,7 @@ optdepends=('ryoku-desktop: follow the Ryoku theme, radius and language'
             'ghostty: default terminal for "Open terminal here" (any terminal in $TERMINAL also works)')
 _tag="v${pkgver//_/-}"
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$_tag.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('5ca67e3dea1d7cd018ab177dfe67c9a73148cf0b3f03172bdfbfb655c2e74773')
 
 prepare() {
   cd "$pkgname-${pkgver//_/-}"
