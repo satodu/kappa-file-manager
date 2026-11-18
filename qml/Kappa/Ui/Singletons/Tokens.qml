@@ -73,11 +73,33 @@ Item {
     readonly property color tint10: hasRyoku ? ryoku.tint10 : Qt.rgba(ownInk.r, ownInk.g, ownInk.b, 0.10)
     readonly property color tint16: hasRyoku ? ryoku.tint16 : Qt.rgba(ownInk.r, ownInk.g, ownInk.b, 0.16)
 
-    // ── Fontes (com fallback genérico para o Qt escolher outra se faltar) ─
-    readonly property string display: "Fraunces, serif"
-    readonly property string ui: hasRyoku ? ryoku.ui : "Space Grotesk, sans-serif"
-    readonly property string mono: hasRyoku ? ryoku.mono : "SpaceMono Nerd Font, JetBrainsMono Nerd Font, monospace"
-    readonly property string jp: "Noto Sans CJK JP, sans-serif"
+    // ── Fontes ───────────────────────────────────────────────────────────
+    // `font.family` do QML não aceita lista com vírgulas: escolhemos a primeira
+    // família realmente instalada. Os ícones são glifos Nerd Font, então qualquer
+    // "Nerd Font" instalada serve se as preferidas faltarem.
+    readonly property var installedFonts: Qt.fontFamilies()
+
+    function firstInstalled(candidates, fallback) {
+        var have = t.installedFonts;
+        for (var i = 0; i < candidates.length; i++) {
+            if (have.indexOf(candidates[i]) !== -1) return candidates[i];
+        }
+        return fallback;
+    }
+
+    function anyNerd() {
+        var have = t.installedFonts;
+        for (var i = 0; i < have.length; i++) {
+            if (have[i].indexOf("Nerd Font") !== -1 && have[i].indexOf("Propo") === -1) return have[i];
+        }
+        return "monospace";
+    }
+
+    readonly property string display: firstInstalled(["Fraunces", "Fraunces 72pt"], "serif")
+    readonly property string ui: hasRyoku ? ryoku.ui : firstInstalled(["Space Grotesk"], "sans-serif")
+    readonly property string mono: hasRyoku ? ryoku.mono
+        : firstInstalled(["SpaceMono Nerd Font", "JetBrainsMono Nerd Font", "JetBrainsMono Nerd Font Mono"], anyNerd())
+    readonly property string jp: firstInstalled(["Noto Sans CJK JP"], "sans-serif")
 
     // ── Geometria ────────────────────────────────────────────────────────
     readonly property int radius: hasRyoku ? ryoku.radius : 6
